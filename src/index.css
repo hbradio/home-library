@@ -250,12 +250,14 @@ input:focus {
 
 .inline-form {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5em;
   align-items: end;
   margin-top: 0.5em;
 }
 .inline-form input {
   flex: 1;
+  min-width: 120px;
 }
 
 .loading {
