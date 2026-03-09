@@ -9,6 +9,8 @@ interface Book {
   author: string
   genre: string
   publisher: string
+  dewey_decimal: string
+  lc_classification: string
   publish_year: number | null
   loan_status: string
   patron_name?: string
@@ -73,6 +75,8 @@ export default function BookDetail() {
             {book.genre && <><dt>Genre:</dt><dd>{book.genre}</dd><br /></>}
             {book.publisher && <><dt>Publisher:</dt><dd>{book.publisher}</dd><br /></>}
             {book.publish_year && <><dt>Year:</dt><dd>{book.publish_year}</dd><br /></>}
+            {book.dewey_decimal && <><dt>Dewey Decimal:</dt><dd>{book.dewey_decimal}</dd><br /></>}
+            {book.lc_classification && <><dt>LoC:</dt><dd>{book.lc_classification}</dd><br /></>}
             <dt>ISBN:</dt><dd>{book.isbn}</dd><br />
             <dt>Status:</dt>
             <dd>

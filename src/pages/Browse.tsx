@@ -9,10 +9,14 @@ interface Book {
   author: string
   genre: string
   publisher: string
+  dewey_decimal: string
+  lc_classification: string
   publish_year: number | null
   loan_status: string
   patron_name?: string
 }
+
+type GroupBy = 'none' | 'dewey' | 'loc'
 
 export default function Browse() {
   const { fetchWithAuth } = useApi()
@@ -21,6 +25,7 @@ export default function Browse() {
   const [author, setAuthor] = useState('')
   const [genre, setGenre] = useState('')
   const [loading, setLoading] = useState(true)
+  const [groupBy, setGroupBy] = useState<GroupBy>('none')
 
   useEffect(() => {
     const load = async () => {
@@ -41,10 +46,10 @@ export default function Browse() {
     const resp = await fetchWithAuth('/api/books')
     if (!resp.ok) return
     const allBooks: Book[] = await resp.json()
-    const header = 'ISBN,Title,Author,Genre,Publisher,Year,Status'
+    const header = 'ISBN,Title,Author,Genre,Publisher,Dewey Decimal,LoC,Year,Status'
     const escape = (s: string) => `"${(s || '').replace(/"/g, '""')}"`
     const rows = allBooks.map(b =>
-      [escape(b.isbn), escape(b.title), escape(b.author), escape(b.genre), escape(b.publisher), b.publish_year ?? '', b.loan_status].join(',')
+      [escape(b.isbn), escape(b.title), escape(b.author), escape(b.genre), escape(b.publisher), escape(b.dewey_decimal), escape(b.lc_classification), b.publish_year ?? '', b.loan_status].join(',')
     )
     const csv = [header, ...rows].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
@@ -56,6 +61,22 @@ export default function Browse() {
     URL.revokeObjectURL(url)
   }
 
+  const groupBooks = (books: Book[]): [string, Book[]][] => {
+    if (groupBy === 'none') return [['', books]]
+    const key = groupBy === 'dewey' ? 'dewey_decimal' : 'lc_classification'
+    const groups: Record<string, Book[]> = {}
+    for (const book of books) {
+      const label = book[key] || 'Unclassified'
+      if (!groups[label]) groups[label] = []
+      groups[label].push(book)
+    }
+    return Object.entries(groups).sort(([a], [b]) => {
+      if (a === 'Unclassified') return 1
+      if (b === 'Unclassified') return -1
+      return a.localeCompare(b)
+    })
+  }
+
   return (
     <div>
       <h2>Browse Library <span style={{ fontSize: '0.5em', fontWeight: 'normal', color: '#8b7355' }}>(Esc to go back)</span></h2>
@@ -65,12 +86,23 @@ export default function Browse() {
         <input placeholder="Filter by genre..." value={genre} onChange={(e) => setGenre(e.target.value)} />
         <button onClick={exportCsv} disabled={loading || books.length === 0}>Export CSV</button>
       </div>
+      <div className="group-toggle" style={{ margin: '0.5em 0 1em', display: 'flex', gap: '1em', alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={{ color: '#8b7355', fontWeight: 600 }}>Group by:</span>
+        <label><input type="radio" name="groupBy" checked={groupBy === 'none'} onChange={() => setGroupBy('none')} /> None</label>
+        <label><input type="radio" name="groupBy" checked={groupBy === 'dewey'} onChange={() => setGroupBy('dewey')} /> Dewey Decimal</label>
+        <label><input type="radio" name="groupBy" checked={groupBy === 'loc'} onChange={() => setGroupBy('loc')} /> Library of Congress</label>
+      </div>
       {loading ? (
         <div className="loading">Loading books...</div>
       ) : books.length === 0 ? (
         <p style={{ color: '#8b7355', fontStyle: 'italic' }}>No books found. Add some from the home screen.</p>
       ) : (
-        books.map((book) => <BookCard key={book.id} book={book} />)
+        groupBooks(books).map(([group, groupedBooks]) => (
+          <div key={group || '_all'}>
+            {group && <h3 style={{ color: '#5c3d2e', borderBottom: '1px solid #d4c9b8', paddingBottom: '0.3em', marginTop: '1.5em' }}>{group}</h3>}
+            {groupedBooks.map((book) => <BookCard key={book.id} book={book} />)}
+          </div>
+        ))
       )}
     </div>
   )

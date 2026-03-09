@@ -70,6 +70,8 @@ func migrate(db *sql.DB) error {
 			created_at TIMESTAMPTZ DEFAULT now()
 		)`,
 		`ALTER TABLE books ADD COLUMN IF NOT EXISTS publisher TEXT`,
+		`ALTER TABLE books ADD COLUMN IF NOT EXISTS dewey_decimal TEXT`,
+		`ALTER TABLE books ADD COLUMN IF NOT EXISTS lc_classification TEXT`,
 		`CREATE INDEX IF NOT EXISTS idx_books_user_id ON books(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_patrons_user_id ON patrons(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_loan_events_book_id ON loan_events(book_id)`,

@@ -61,12 +61,14 @@ func Books(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodPost:
 		var body struct {
-			ISBN        string `json:"isbn"`
-			Title       string `json:"title"`
-			Author      string `json:"author"`
-			Genre       string `json:"genre"`
-			Publisher   string `json:"publisher"`
-			PublishYear *int   `json:"publish_year"`
+			ISBN             string `json:"isbn"`
+			Title            string `json:"title"`
+			Author           string `json:"author"`
+			Genre            string `json:"genre"`
+			Publisher        string `json:"publisher"`
+			DeweyDecimal     string `json:"dewey_decimal"`
+			LCClassification string `json:"lc_classification"`
+			PublishYear      *int   `json:"publish_year"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
@@ -76,7 +78,7 @@ func Books(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, `{"error":"isbn and title are required"}`, http.StatusBadRequest)
 			return
 		}
-		book, err := models.CreateBook(pool, user.ID, body.ISBN, body.Title, body.Author, body.Genre, body.Publisher, body.PublishYear)
+		book, err := models.CreateBook(pool, user.ID, body.ISBN, body.Title, body.Author, body.Genre, body.Publisher, body.DeweyDecimal, body.LCClassification, body.PublishYear)
 		if err != nil {
 			if strings.Contains(err.Error(), "unique") || strings.Contains(err.Error(), "duplicate") {
 				http.Error(w, `{"error":"book already in library"}`, http.StatusConflict)

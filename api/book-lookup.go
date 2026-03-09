@@ -11,12 +11,14 @@ import (
 )
 
 type BookLookupResult struct {
-	ISBN        string `json:"isbn"`
-	Title       string `json:"title"`
-	Author      string `json:"author"`
-	Genre       string `json:"genre"`
-	Publisher   string `json:"publisher"`
-	PublishYear *int   `json:"publish_year"`
+	ISBN             string `json:"isbn"`
+	Title            string `json:"title"`
+	Author           string `json:"author"`
+	Genre            string `json:"genre"`
+	Publisher        string `json:"publisher"`
+	DeweyDecimal     string `json:"dewey_decimal"`
+	LCClassification string `json:"lc_classification"`
+	PublishYear      *int   `json:"publish_year"`
 }
 
 func BookLookup(w http.ResponseWriter, r *http.Request) {
@@ -92,6 +94,20 @@ func lookupISBN(isbn string) (*BookLookupResult, error) {
 	if publishers, ok := bookData["publishers"].([]interface{}); ok && len(publishers) > 0 {
 		if pub, ok := publishers[0].(string); ok {
 			result.Publisher = pub
+		}
+	}
+
+	// Dewey Decimal
+	if dewey, ok := bookData["dewey_decimal_class"].([]interface{}); ok && len(dewey) > 0 {
+		if d, ok := dewey[0].(string); ok {
+			result.DeweyDecimal = d
+		}
+	}
+
+	// Library of Congress Classification
+	if lc, ok := bookData["lc_classifications"].([]interface{}); ok && len(lc) > 0 {
+		if l, ok := lc[0].(string); ok {
+			result.LCClassification = l
 		}
 	}
 
