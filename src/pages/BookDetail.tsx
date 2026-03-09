@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useApi } from '../lib/api'
 
 interface Book {
@@ -22,9 +22,20 @@ interface LoanEvent {
 
 export default function BookDetail() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const { fetchWithAuth } = useApi()
   const [book, setBook] = useState<Book | null>(null)
   const [history, setHistory] = useState<LoanEvent[]>([])
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const handleDelete = async () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true)
+      return
+    }
+    await fetchWithAuth(`/api/books?id=${id}`, { method: 'DELETE' })
+    navigate('/browse')
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -70,6 +81,17 @@ export default function BookDetail() {
               </span>
             </dd>
           </dl>
+          <button
+            onClick={handleDelete}
+            style={{ marginTop: '1em', color: confirmDelete ? '#fff' : '#c62828', borderColor: '#c62828', background: confirmDelete ? '#c62828' : '#fff' }}
+          >
+            {confirmDelete ? 'Confirm Delete' : 'Delete Book'}
+          </button>
+          {confirmDelete && (
+            <button onClick={() => setConfirmDelete(false)} style={{ marginLeft: '0.5em', marginTop: '1em' }}>
+              Cancel
+            </button>
+          )}
         </div>
       </div>
 

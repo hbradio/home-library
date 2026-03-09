@@ -36,6 +36,25 @@ export default function Browse() {
     return () => clearTimeout(timer)
   }, [title, author, genre, fetchWithAuth])
 
+  const exportCsv = async () => {
+    const resp = await fetchWithAuth('/api/books')
+    if (!resp.ok) return
+    const allBooks: Book[] = await resp.json()
+    const header = 'ISBN,Title,Author,Genre,Year,Status'
+    const escape = (s: string) => `"${(s || '').replace(/"/g, '""')}"`
+    const rows = allBooks.map(b =>
+      [escape(b.isbn), escape(b.title), escape(b.author), escape(b.genre), b.publish_year ?? '', b.loan_status].join(',')
+    )
+    const csv = [header, ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'library.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div>
       <h2>Browse Library <span style={{ fontSize: '0.5em', fontWeight: 'normal', color: '#8b7355' }}>(Esc to go back)</span></h2>
@@ -43,6 +62,7 @@ export default function Browse() {
         <input placeholder="Filter by title..." value={title} onChange={(e) => setTitle(e.target.value)} />
         <input placeholder="Filter by author..." value={author} onChange={(e) => setAuthor(e.target.value)} />
         <input placeholder="Filter by genre..." value={genre} onChange={(e) => setGenre(e.target.value)} />
+        <button onClick={exportCsv} disabled={loading || books.length === 0}>Export CSV</button>
       </div>
       {loading ? (
         <div className="loading">Loading books...</div>
