@@ -156,6 +156,25 @@ func GetBookByISBN(db *sql.DB, isbn, userID string) (*Book, error) {
 	return &b, nil
 }
 
+func UpdateBook(db *sql.DB, bookID, userID, title, author, genre, publisher, deweyDecimal, lcClassification string, publishYear *int) (*Book, error) {
+	var b Book
+	var py sql.NullInt64
+	if publishYear != nil {
+		py = sql.NullInt64{Int64: int64(*publishYear), Valid: true}
+	}
+	err := db.QueryRow(
+		`UPDATE books SET title=$3, author=$4, genre=$5, publisher=$6, dewey_decimal=$7, lc_classification=$8, publish_year=$9
+		 WHERE id=$1 AND user_id=$2
+		 RETURNING id, user_id, isbn, title, author, genre, publisher, dewey_decimal, lc_classification, publish_year, created_at`,
+		bookID, userID, title, author, genre, publisher, deweyDecimal, lcClassification, py,
+	).Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.Publisher, &b.DeweyDecimal, &b.LCClassification, &b.PublishYear, &b.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	b.LoanStatus = "available"
+	return &b, nil
+}
+
 func DeleteBook(db *sql.DB, bookID, userID string) error {
 	_, err := db.Exec(`DELETE FROM loan_events WHERE book_id = $1`, bookID)
 	if err != nil {

@@ -90,6 +90,36 @@ func Books(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(book)
 
+	case http.MethodPut:
+		bookID := r.URL.Query().Get("id")
+		if bookID == "" {
+			http.Error(w, `{"error":"id parameter required"}`, http.StatusBadRequest)
+			return
+		}
+		var body struct {
+			Title            string `json:"title"`
+			Author           string `json:"author"`
+			Genre            string `json:"genre"`
+			Publisher        string `json:"publisher"`
+			DeweyDecimal     string `json:"dewey_decimal"`
+			LCClassification string `json:"lc_classification"`
+			PublishYear      *int   `json:"publish_year"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+			return
+		}
+		if body.Title == "" {
+			http.Error(w, `{"error":"title is required"}`, http.StatusBadRequest)
+			return
+		}
+		book, err := models.UpdateBook(pool, bookID, user.ID, body.Title, body.Author, body.Genre, body.Publisher, body.DeweyDecimal, body.LCClassification, body.PublishYear)
+		if err != nil {
+			http.Error(w, `{"error":"failed to update book"}`, http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(book)
+
 	case http.MethodDelete:
 		bookID := r.URL.Query().Get("id")
 		if bookID == "" {

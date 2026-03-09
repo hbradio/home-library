@@ -23,6 +23,16 @@ interface LoanEvent {
   patron_name?: string
 }
 
+interface EditFields {
+  title: string
+  author: string
+  genre: string
+  publisher: string
+  dewey_decimal: string
+  lc_classification: string
+  publish_year: string
+}
+
 export default function BookDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -30,6 +40,43 @@ export default function BookDetail() {
   const [book, setBook] = useState<Book | null>(null)
   const [history, setHistory] = useState<LoanEvent[]>([])
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [edit, setEdit] = useState<EditFields>({ title: '', author: '', genre: '', publisher: '', dewey_decimal: '', lc_classification: '', publish_year: '' })
+
+  const startEdit = () => {
+    if (!book) return
+    setEdit({
+      title: book.title,
+      author: book.author,
+      genre: book.genre,
+      publisher: book.publisher,
+      dewey_decimal: book.dewey_decimal,
+      lc_classification: book.lc_classification,
+      publish_year: book.publish_year?.toString() || '',
+    })
+    setEditing(true)
+  }
+
+  const saveEdit = async () => {
+    const year = edit.publish_year ? parseInt(edit.publish_year, 10) : null
+    const resp = await fetchWithAuth(`/api/books?id=${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        title: edit.title,
+        author: edit.author,
+        genre: edit.genre,
+        publisher: edit.publisher,
+        dewey_decimal: edit.dewey_decimal,
+        lc_classification: edit.lc_classification,
+        publish_year: isNaN(year as number) ? null : year,
+      }),
+    })
+    if (resp.ok) {
+      const updated = await resp.json()
+      setBook(updated)
+      setEditing(false)
+    }
+  }
 
   const handleDelete = async () => {
     if (!confirmDelete) {
@@ -69,32 +116,66 @@ export default function BookDetail() {
           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
         />
         <div>
-          <h2 style={{ marginTop: 0 }}>{book.title} <span style={{ fontSize: '0.5em', fontWeight: 'normal', color: '#8b7355' }}>(Esc to go back)</span></h2>
-          <dl className="meta">
-            {book.author && <><dt>Author:</dt><dd>{book.author}</dd><br /></>}
-            {book.genre && <><dt>Genre:</dt><dd>{book.genre}</dd><br /></>}
-            {book.publisher && <><dt>Publisher:</dt><dd>{book.publisher}</dd><br /></>}
-            {book.publish_year && <><dt>Year:</dt><dd>{book.publish_year}</dd><br /></>}
-            {book.dewey_decimal && <><dt>Dewey Decimal:</dt><dd>{book.dewey_decimal}</dd><br /></>}
-            {book.lc_classification && <><dt>LoC:</dt><dd>{book.lc_classification}</dd><br /></>}
-            <dt>ISBN:</dt><dd>{book.isbn}</dd><br />
-            <dt>Status:</dt>
-            <dd>
-              <span className={`status-badge ${book.loan_status}`}>
-                {book.loan_status === 'checked_out'
-                  ? `Checked out to ${book.patron_name || 'someone'}`
-                  : 'Available'}
-              </span>
-            </dd>
-          </dl>
+          <h2 style={{ marginTop: 0 }}>
+            {editing
+              ? <input value={edit.title} onChange={(e) => setEdit({ ...edit, title: e.target.value })} style={{ font: 'inherit', width: '100%' }} />
+              : <>{book.title} <span style={{ fontSize: '0.5em', fontWeight: 'normal', color: '#8b7355' }}>(Esc to go back)</span></>
+            }
+          </h2>
+          {editing ? (
+            <div className="edit-form" style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '0.4em 0.8em', alignItems: 'center' }}>
+              <label>Author:</label>
+              <input value={edit.author} onChange={(e) => setEdit({ ...edit, author: e.target.value })} />
+              <label>Genre:</label>
+              <input value={edit.genre} onChange={(e) => setEdit({ ...edit, genre: e.target.value })} />
+              <label>Publisher:</label>
+              <input value={edit.publisher} onChange={(e) => setEdit({ ...edit, publisher: e.target.value })} />
+              <label>Year:</label>
+              <input value={edit.publish_year} onChange={(e) => setEdit({ ...edit, publish_year: e.target.value })} type="number" />
+              <label>Dewey Decimal:</label>
+              <input value={edit.dewey_decimal} onChange={(e) => setEdit({ ...edit, dewey_decimal: e.target.value })} />
+              <label>LoC:</label>
+              <input value={edit.lc_classification} onChange={(e) => setEdit({ ...edit, lc_classification: e.target.value })} />
+              <div style={{ gridColumn: '1 / -1', marginTop: '0.5em', display: 'flex', gap: '0.5em' }}>
+                <button onClick={saveEdit}>Save</button>
+                <button onClick={() => setEditing(false)}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <dl className="meta">
+                {book.author && <><dt>Author:</dt><dd>{book.author}</dd><br /></>}
+                {book.genre && <><dt>Genre:</dt><dd>{book.genre}</dd><br /></>}
+                {book.publisher && <><dt>Publisher:</dt><dd>{book.publisher}</dd><br /></>}
+                {book.publish_year && <><dt>Year:</dt><dd>{book.publish_year}</dd><br /></>}
+                {book.dewey_decimal && <><dt>Dewey Decimal:</dt><dd>{book.dewey_decimal}</dd><br /></>}
+                {book.lc_classification && <><dt>LoC:</dt><dd>{book.lc_classification}</dd><br /></>}
+                <dt>ISBN:</dt><dd>{book.isbn}</dd><br />
+                <dt>Status:</dt>
+                <dd>
+                  <span className={`status-badge ${book.loan_status}`}>
+                    {book.loan_status === 'checked_out'
+                      ? `Checked out to ${book.patron_name || 'someone'}`
+                      : 'Available'}
+                  </span>
+                </dd>
+              </dl>
+              <button
+                onClick={startEdit}
+                style={{ marginTop: '1em', fontSize: '0.85em' }}
+              >
+                Edit
+              </button>
+            </>
+          )}
           <button
             onClick={handleDelete}
-            style={{ marginTop: '2em', color: confirmDelete ? '#fff' : '#b8a88a', border: 'none', background: confirmDelete ? '#c62828' : 'transparent', fontSize: '0.8em', padding: confirmDelete ? '0.4em 0.8em' : 0, cursor: 'pointer', textDecoration: confirmDelete ? 'none' : 'underline' }}
+            style={{ marginTop: '2em', color: confirmDelete ? '#fff' : '#b8a88a', border: 'none', background: confirmDelete ? '#c62828' : 'transparent', fontSize: '0.8em', padding: confirmDelete ? '0.4em 0.8em' : 0, cursor: 'pointer', textDecoration: confirmDelete ? 'none' : 'underline', display: 'block' }}
           >
             {confirmDelete ? 'Confirm Delete' : 'Delete Book'}
           </button>
           {confirmDelete && (
-            <button onClick={() => setConfirmDelete(false)} style={{ marginLeft: '0.5em', marginTop: '2em', fontSize: '0.8em' }}>
+            <button onClick={() => setConfirmDelete(false)} style={{ marginLeft: '0.5em', fontSize: '0.8em' }}>
               Cancel
             </button>
           )}
