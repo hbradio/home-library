@@ -104,7 +104,7 @@ export default function Browse() {
   const [author, setAuthor] = useState('')
   const [genre, setGenre] = useState('')
   const [loading, setLoading] = useState(true)
-  const [groupBy, setGroupBy] = useState<GroupBy>('none')
+  const [groupBy, setGroupBy] = useState<GroupBy>('loc')
 
   useEffect(() => {
     const load = async () => {
