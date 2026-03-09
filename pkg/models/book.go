@@ -13,24 +13,25 @@ type Book struct {
 	Title       string     `json:"title"`
 	Author      string     `json:"author"`
 	Genre       string     `json:"genre"`
+	Publisher   string     `json:"publisher"`
 	PublishYear *int       `json:"publish_year"`
 	CreatedAt   time.Time  `json:"created_at"`
 	LoanStatus  string     `json:"loan_status"`
 	PatronName  *string    `json:"patron_name,omitempty"`
 }
 
-func CreateBook(db *sql.DB, userID, isbn, title, author, genre string, publishYear *int) (*Book, error) {
+func CreateBook(db *sql.DB, userID, isbn, title, author, genre, publisher string, publishYear *int) (*Book, error) {
 	var b Book
 	var py sql.NullInt64
 	if publishYear != nil {
 		py = sql.NullInt64{Int64: int64(*publishYear), Valid: true}
 	}
 	err := db.QueryRow(
-		`INSERT INTO books (user_id, isbn, title, author, genre, publish_year)
-		 VALUES ($1, $2, $3, $4, $5, $6)
-		 RETURNING id, user_id, isbn, title, author, genre, publish_year, created_at`,
-		userID, isbn, title, author, genre, py,
-	).Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.PublishYear, &b.CreatedAt)
+		`INSERT INTO books (user_id, isbn, title, author, genre, publisher, publish_year)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)
+		 RETURNING id, user_id, isbn, title, author, genre, publisher, publish_year, created_at`,
+		userID, isbn, title, author, genre, publisher, py,
+	).Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.Publisher, &b.PublishYear, &b.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +40,7 @@ func CreateBook(db *sql.DB, userID, isbn, title, author, genre string, publishYe
 }
 
 func GetBooks(db *sql.DB, userID, title, author, genre string) ([]Book, error) {
-	query := `SELECT b.id, b.user_id, b.isbn, b.title, b.author, b.genre, b.publish_year, b.created_at,
+	query := `SELECT b.id, b.user_id, b.isbn, b.title, b.author, b.genre, COALESCE(b.publisher, ''), b.publish_year, b.created_at,
 		COALESCE(
 			(SELECT le.event_type FROM loan_events le WHERE le.book_id = b.id ORDER BY le.created_at DESC LIMIT 1),
 			'available'
@@ -78,7 +79,7 @@ func GetBooks(db *sql.DB, userID, title, author, genre string) ([]Book, error) {
 	for rows.Next() {
 		var b Book
 		var patronName sql.NullString
-		err := rows.Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.PublishYear, &b.CreatedAt, &b.LoanStatus, &patronName)
+		err := rows.Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.Publisher, &b.PublishYear, &b.CreatedAt, &b.LoanStatus, &patronName)
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +100,7 @@ func GetBookByID(db *sql.DB, bookID, userID string) (*Book, error) {
 	var b Book
 	var patronName sql.NullString
 	err := db.QueryRow(
-		`SELECT b.id, b.user_id, b.isbn, b.title, b.author, b.genre, b.publish_year, b.created_at,
+		`SELECT b.id, b.user_id, b.isbn, b.title, b.author, b.genre, COALESCE(b.publisher, ''), b.publish_year, b.created_at,
 		COALESCE(
 			(SELECT le.event_type FROM loan_events le WHERE le.book_id = b.id ORDER BY le.created_at DESC LIMIT 1),
 			'available'
@@ -109,7 +110,7 @@ func GetBookByID(db *sql.DB, bookID, userID string) (*Book, error) {
 		 WHERE le.book_id = b.id ORDER BY le.created_at DESC LIMIT 1) as patron_name
 		FROM books b WHERE b.id = $1 AND b.user_id = $2`,
 		bookID, userID,
-	).Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.PublishYear, &b.CreatedAt, &b.LoanStatus, &patronName)
+	).Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.Publisher, &b.PublishYear, &b.CreatedAt, &b.LoanStatus, &patronName)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +129,7 @@ func GetBookByISBN(db *sql.DB, isbn, userID string) (*Book, error) {
 	var b Book
 	var patronName sql.NullString
 	err := db.QueryRow(
-		`SELECT b.id, b.user_id, b.isbn, b.title, b.author, b.genre, b.publish_year, b.created_at,
+		`SELECT b.id, b.user_id, b.isbn, b.title, b.author, b.genre, COALESCE(b.publisher, ''), b.publish_year, b.created_at,
 		COALESCE(
 			(SELECT le.event_type FROM loan_events le WHERE le.book_id = b.id ORDER BY le.created_at DESC LIMIT 1),
 			'available'
@@ -138,7 +139,7 @@ func GetBookByISBN(db *sql.DB, isbn, userID string) (*Book, error) {
 		 WHERE le.book_id = b.id ORDER BY le.created_at DESC LIMIT 1) as patron_name
 		FROM books b WHERE b.isbn = $1 AND b.user_id = $2`,
 		isbn, userID,
-	).Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.PublishYear, &b.CreatedAt, &b.LoanStatus, &patronName)
+	).Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.Publisher, &b.PublishYear, &b.CreatedAt, &b.LoanStatus, &patronName)
 	if err != nil {
 		return nil, err
 	}

@@ -8,6 +8,7 @@ interface Book {
   title: string
   author: string
   genre: string
+  publisher: string
   publish_year: number | null
   loan_status: string
   patron_name?: string
@@ -40,10 +41,10 @@ export default function Browse() {
     const resp = await fetchWithAuth('/api/books')
     if (!resp.ok) return
     const allBooks: Book[] = await resp.json()
-    const header = 'ISBN,Title,Author,Genre,Year,Status'
+    const header = 'ISBN,Title,Author,Genre,Publisher,Year,Status'
     const escape = (s: string) => `"${(s || '').replace(/"/g, '""')}"`
     const rows = allBooks.map(b =>
-      [escape(b.isbn), escape(b.title), escape(b.author), escape(b.genre), b.publish_year ?? '', b.loan_status].join(',')
+      [escape(b.isbn), escape(b.title), escape(b.author), escape(b.genre), escape(b.publisher), b.publish_year ?? '', b.loan_status].join(',')
     )
     const csv = [header, ...rows].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })

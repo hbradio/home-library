@@ -69,6 +69,7 @@ func migrate(db *sql.DB) error {
 			event_type TEXT NOT NULL CHECK (event_type IN ('checkout', 'return')),
 			created_at TIMESTAMPTZ DEFAULT now()
 		)`,
+		`ALTER TABLE books ADD COLUMN IF NOT EXISTS publisher TEXT`,
 		`CREATE INDEX IF NOT EXISTS idx_books_user_id ON books(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_patrons_user_id ON patrons(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_loan_events_book_id ON loan_events(book_id)`,

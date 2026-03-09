@@ -8,6 +8,7 @@ interface Book {
   title: string
   author: string
   genre: string
+  publisher: string
   publish_year: number | null
   loan_status: string
   patron_name?: string
@@ -70,6 +71,7 @@ export default function BookDetail() {
           <dl className="meta">
             {book.author && <><dt>Author:</dt><dd>{book.author}</dd><br /></>}
             {book.genre && <><dt>Genre:</dt><dd>{book.genre}</dd><br /></>}
+            {book.publisher && <><dt>Publisher:</dt><dd>{book.publisher}</dd><br /></>}
             {book.publish_year && <><dt>Year:</dt><dd>{book.publish_year}</dd><br /></>}
             <dt>ISBN:</dt><dd>{book.isbn}</dd><br />
             <dt>Status:</dt>

@@ -15,6 +15,7 @@ type BookLookupResult struct {
 	Title       string `json:"title"`
 	Author      string `json:"author"`
 	Genre       string `json:"genre"`
+	Publisher   string `json:"publisher"`
 	PublishYear *int   `json:"publish_year"`
 }
 
@@ -84,6 +85,13 @@ func lookupISBN(isbn string) (*BookLookupResult, error) {
 					}
 				}
 			}
+		}
+	}
+
+	// Publisher
+	if publishers, ok := bookData["publishers"].([]interface{}); ok && len(publishers) > 0 {
+		if pub, ok := publishers[0].(string); ok {
+			result.Publisher = pub
 		}
 	}
 

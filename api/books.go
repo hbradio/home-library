@@ -65,6 +65,7 @@ func Books(w http.ResponseWriter, r *http.Request) {
 			Title       string `json:"title"`
 			Author      string `json:"author"`
 			Genre       string `json:"genre"`
+			Publisher   string `json:"publisher"`
 			PublishYear *int   `json:"publish_year"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -75,7 +76,7 @@ func Books(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, `{"error":"isbn and title are required"}`, http.StatusBadRequest)
 			return
 		}
-		book, err := models.CreateBook(pool, user.ID, body.ISBN, body.Title, body.Author, body.Genre, body.PublishYear)
+		book, err := models.CreateBook(pool, user.ID, body.ISBN, body.Title, body.Author, body.Genre, body.Publisher, body.PublishYear)
 		if err != nil {
 			if strings.Contains(err.Error(), "unique") || strings.Contains(err.Error(), "duplicate") {
 				http.Error(w, `{"error":"book already in library"}`, http.StatusConflict)
