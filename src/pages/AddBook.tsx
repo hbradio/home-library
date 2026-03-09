@@ -12,27 +12,27 @@ interface SessionItem {
 export default function AddBook() {
   const { fetchWithAuth } = useApi()
   const [useCamera, setUseCamera] = useState(false)
-  const [processing, setProcessing] = useState(false)
+  const [pending, setPending] = useState(0)
   const [message, setMessage] = useState<{ text: string; type: string } | null>(null)
   const [sessionItems, setSessionItems] = useState<SessionItem[]>([])
 
   const handleScan = useCallback(async (isbn: string) => {
-    setProcessing(true)
-    setMessage({ text: `Looking up ISBN ${isbn}...`, type: 'info' })
+    setPending((n) => n + 1)
+    setSessionItems((prev) => [{ text: `${isbn} — Looking up...`, type: 'info' }, ...prev])
 
     try {
-      // Look up book metadata
       const lookupResp = await fetchWithAuth(`/api/book-lookup?isbn=${isbn}`)
       if (!lookupResp.ok) {
         const err = await lookupResp.json()
         setMessage({ text: err.error || 'Book not found', type: 'error' })
-        setSessionItems((prev) => [{ text: `${isbn} — Not found`, type: 'error' }, ...prev])
-        setProcessing(false)
+        setSessionItems((prev) => prev.map((item) =>
+          item.text === `${isbn} — Looking up...` ? { text: `${isbn} — Not found`, type: 'error' } : item
+        ))
+        setPending((n) => n - 1)
         return
       }
       const bookData = await lookupResp.json()
 
-      // Save to library
       const saveResp = await fetchWithAuth('/api/books', {
         method: 'POST',
         body: JSON.stringify(bookData),
@@ -40,26 +40,35 @@ export default function AddBook() {
 
       if (saveResp.status === 409) {
         setMessage({ text: `"${bookData.title}" is already in your library`, type: 'info' })
-        setSessionItems((prev) => [{ text: `${bookData.title} — Already in library`, type: 'info' }, ...prev])
+        setSessionItems((prev) => prev.map((item) =>
+          item.text === `${isbn} — Looking up...` ? { text: `${bookData.title} — Already in library`, type: 'info' } : item
+        ))
       } else if (saveResp.ok) {
         setMessage({ text: `Added "${bookData.title}" by ${bookData.author || 'Unknown'}`, type: 'success' })
-        setSessionItems((prev) => [{ text: `${bookData.title} — Added`, type: 'success' }, ...prev])
+        setSessionItems((prev) => prev.map((item) =>
+          item.text === `${isbn} — Looking up...` ? { text: `${bookData.title} — Added`, type: 'success' } : item
+        ))
       } else {
         const err = await saveResp.json()
         setMessage({ text: err.error || 'Failed to save book', type: 'error' })
-        setSessionItems((prev) => [{ text: `${isbn} — Error saving`, type: 'error' }, ...prev])
+        setSessionItems((prev) => prev.map((item) =>
+          item.text === `${isbn} — Looking up...` ? { text: `${isbn} — Error saving`, type: 'error' } : item
+        ))
       }
     } catch {
       setMessage({ text: 'Network error', type: 'error' })
+      setSessionItems((prev) => prev.map((item) =>
+        item.text === `${isbn} — Looking up...` ? { text: `${isbn} — Network error`, type: 'error' } : item
+      ))
     }
-    setProcessing(false)
+    setPending((n) => n - 1)
   }, [fetchWithAuth])
 
   return (
     <div>
       <h2>Add Book <span style={{ fontSize: '0.5em', fontWeight: 'normal', color: '#8b7355' }}>(Esc to go back)</span></h2>
       <div className="scan-area">
-        <IsbnInput onScan={handleScan} disabled={processing} />
+        <IsbnInput onScan={handleScan} />
         <button
           className="toggle-camera"
           onClick={() => setUseCamera(!useCamera)}
@@ -70,6 +79,9 @@ export default function AddBook() {
 
       <Scanner active={useCamera} onScan={handleScan} />
 
+      {pending > 0 && (
+        <div className="message info">Looking up {pending} book{pending > 1 ? 's' : ''}...</div>
+      )}
       {message && (
         <div className={`message ${message.type}`}>{message.text}</div>
       )}
