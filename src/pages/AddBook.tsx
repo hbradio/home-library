@@ -77,14 +77,14 @@ export default function AddBook() {
         </button>
       </div>
 
-      <Scanner active={useCamera} onScan={handleScan} />
-
       {pending > 0 && (
         <div className="message info">Looking up {pending} book{pending > 1 ? 's' : ''}...</div>
       )}
       {message && (
         <div className={`message ${message.type}`}>{message.text}</div>
       )}
+
+      <Scanner active={useCamera} onScan={handleScan} />
 
       <SessionList items={sessionItems} />
     </div>

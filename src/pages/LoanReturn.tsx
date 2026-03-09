@@ -101,8 +101,6 @@ export default function LoanReturn() {
         </button>
       </div>
 
-      <Scanner active={useCamera && !pendingISBN} onScan={handleScan} />
-
       {message && (
         <div className={`message ${message.type}`}>{message.text}</div>
       )}
@@ -110,6 +108,8 @@ export default function LoanReturn() {
       {pendingISBN && (
         <PatronSearch onSelect={handlePatronSelect} />
       )}
+
+      <Scanner active={useCamera && !pendingISBN} onScan={handleScan} />
 
       <SessionList items={sessionItems} />
     </div>
