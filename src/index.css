@@ -1,0 +1,265 @@
+:root {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  line-height: 1.6;
+  font-weight: 400;
+  color: #2c1810;
+  background-color: #f5f0e8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4 {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-weight: 700;
+  color: #1a0f0a;
+}
+
+a {
+  color: #5c3d2e;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  cursor: pointer;
+  border: 1px solid #8b7355;
+  background: #fff;
+  color: #2c1810;
+  padding: 0.5em 1em;
+  font-size: 1em;
+}
+button:hover {
+  background: #f0e6d6;
+}
+button:focus {
+  outline: 2px solid #5c3d2e;
+  outline-offset: 2px;
+}
+
+input, select {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: 1em;
+  padding: 0.5em;
+  border: 1px solid #8b7355;
+  background: #fff;
+  color: #2c1810;
+}
+input:focus {
+  outline: 2px solid #5c3d2e;
+  outline-offset: 1px;
+}
+
+.app {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1em;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #8b7355;
+  padding-bottom: 0.5em;
+  margin-bottom: 1.5em;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.8em;
+}
+
+.home-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5em;
+  align-items: center;
+  padding: 3em 1em;
+}
+
+.home-button {
+  width: 100%;
+  max-width: 400px;
+  padding: 1.5em 2em;
+  font-size: 1.5em;
+  font-weight: 700;
+  border: 2px solid #5c3d2e;
+  background: #fff;
+  text-align: center;
+}
+.home-button:hover {
+  background: #e8dcc8;
+  border-color: #2c1810;
+}
+
+.book-card {
+  border: 1px solid #c4b5a0;
+  padding: 0.75em 1em;
+  margin-bottom: 0.5em;
+  background: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.book-card:hover {
+  background: #f8f3ec;
+}
+
+.status-badge {
+  font-size: 0.85em;
+  padding: 0.2em 0.6em;
+  border: 1px solid;
+}
+.status-badge.available {
+  border-color: #4a7c4f;
+  color: #4a7c4f;
+  background: #e8f5e9;
+}
+.status-badge.checked_out {
+  border-color: #b57614;
+  color: #b57614;
+  background: #fff8e1;
+}
+
+.filters {
+  display: flex;
+  gap: 0.5em;
+  margin-bottom: 1em;
+  flex-wrap: wrap;
+}
+.filters input {
+  flex: 1;
+  min-width: 150px;
+}
+
+.session-list {
+  margin-top: 1.5em;
+  border-top: 1px solid #c4b5a0;
+  padding-top: 1em;
+}
+.session-item {
+  padding: 0.3em 0;
+  border-bottom: 1px dotted #d4c5b0;
+}
+.session-item.success {
+  color: #4a7c4f;
+}
+.session-item.error {
+  color: #c62828;
+}
+
+.patron-search {
+  border: 1px solid #c4b5a0;
+  padding: 1em;
+  margin-top: 1em;
+  background: #faf7f2;
+}
+
+.patron-list-item {
+  padding: 0.5em;
+  cursor: pointer;
+  border-bottom: 1px dotted #d4c5b0;
+}
+.patron-list-item:hover {
+  background: #e8dcc8;
+}
+
+.detail-page {
+  padding: 1em 0;
+}
+.detail-page .cover {
+  max-width: 200px;
+  border: 1px solid #c4b5a0;
+}
+.detail-page .meta {
+  margin: 1em 0;
+}
+.detail-page .meta dt {
+  font-weight: 700;
+  display: inline;
+}
+.detail-page .meta dd {
+  display: inline;
+  margin: 0 1em 0 0.3em;
+}
+
+.loan-history {
+  margin-top: 1em;
+}
+.loan-history table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.loan-history th, .loan-history td {
+  text-align: left;
+  padding: 0.4em 0.6em;
+  border-bottom: 1px solid #d4c5b0;
+}
+.loan-history th {
+  border-bottom: 2px solid #8b7355;
+  font-weight: 700;
+}
+
+.scan-area {
+  margin: 1em 0;
+}
+.scan-input {
+  width: 100%;
+  max-width: 400px;
+  font-size: 1.2em;
+  padding: 0.6em;
+}
+
+.toggle-camera {
+  margin-left: 0.5em;
+  font-size: 0.9em;
+}
+
+.message {
+  padding: 0.6em 1em;
+  margin: 0.5em 0;
+  border: 1px solid;
+}
+.message.success {
+  border-color: #4a7c4f;
+  background: #e8f5e9;
+  color: #2e5e32;
+}
+.message.error {
+  border-color: #c62828;
+  background: #fce4ec;
+  color: #b71c1c;
+}
+.message.info {
+  border-color: #5c3d2e;
+  background: #faf7f2;
+  color: #5c3d2e;
+}
+
+.inline-form {
+  display: flex;
+  gap: 0.5em;
+  align-items: end;
+  margin-top: 0.5em;
+}
+.inline-form input {
+  flex: 1;
+}
+
+.loading {
+  text-align: center;
+  padding: 2em;
+  color: #8b7355;
+  font-style: italic;
+}

@@ -1,0 +1,56 @@
+import { useState, useEffect } from 'react'
+import { useApi } from '../lib/api'
+import BookCard from '../components/BookCard'
+
+interface Book {
+  id: string
+  isbn: string
+  title: string
+  author: string
+  genre: string
+  publish_year: number | null
+  loan_status: string
+  patron_name?: string
+}
+
+export default function Browse() {
+  const { fetchWithAuth } = useApi()
+  const [books, setBooks] = useState<Book[]>([])
+  const [title, setTitle] = useState('')
+  const [author, setAuthor] = useState('')
+  const [genre, setGenre] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      const params = new URLSearchParams()
+      if (title) params.set('title', title)
+      if (author) params.set('author', author)
+      if (genre) params.set('genre', genre)
+      const resp = await fetchWithAuth(`/api/books?${params}`)
+      if (resp.ok) setBooks(await resp.json())
+      setLoading(false)
+    }
+    const timer = setTimeout(load, 300)
+    return () => clearTimeout(timer)
+  }, [title, author, genre, fetchWithAuth])
+
+  return (
+    <div>
+      <h2>Browse Library</h2>
+      <div className="filters">
+        <input placeholder="Filter by title..." value={title} onChange={(e) => setTitle(e.target.value)} />
+        <input placeholder="Filter by author..." value={author} onChange={(e) => setAuthor(e.target.value)} />
+        <input placeholder="Filter by genre..." value={genre} onChange={(e) => setGenre(e.target.value)} />
+      </div>
+      {loading ? (
+        <div className="loading">Loading books...</div>
+      ) : books.length === 0 ? (
+        <p style={{ color: '#8b7355', fontStyle: 'italic' }}>No books found. Add some from the home screen.</p>
+      ) : (
+        books.map((book) => <BookCard key={book.id} book={book} />)
+      )}
+    </div>
+  )
+}
