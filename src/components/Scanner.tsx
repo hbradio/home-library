@@ -26,12 +26,21 @@ export default function Scanner({ onScan, active }: Props) {
     const scanner = new Html5Qrcode('scanner-container', {
       formatsToSupport: BARCODE_FORMATS,
       verbose: false,
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
     })
     scannerRef.current = scanner
 
     scanner.start(
-      { facingMode: 'environment' },
-      { fps: 15, qrbox: { width: 300, height: 150 }, aspectRatio: 1.5 },
+      { facingMode: { exact: 'environment' } },
+      {
+        fps: 20,
+        aspectRatio: 1.5,
+        videoConstraints: {
+          facingMode: { exact: 'environment' },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+      },
       (text) => {
         const isbn = text.replace(/-/g, '')
         if (isbn !== lastScanRef.current && isbn.length >= 10) {
