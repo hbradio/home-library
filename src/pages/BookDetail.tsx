@@ -89,12 +89,12 @@ export default function BookDetail() {
           </dl>
           <button
             onClick={handleDelete}
-            style={{ marginTop: '1em', color: confirmDelete ? '#fff' : '#c62828', borderColor: '#c62828', background: confirmDelete ? '#c62828' : '#fff' }}
+            style={{ marginTop: '2em', color: confirmDelete ? '#fff' : '#b8a88a', border: 'none', background: confirmDelete ? '#c62828' : 'transparent', fontSize: '0.8em', padding: confirmDelete ? '0.4em 0.8em' : 0, cursor: 'pointer', textDecoration: confirmDelete ? 'none' : 'underline' }}
           >
             {confirmDelete ? 'Confirm Delete' : 'Delete Book'}
           </button>
           {confirmDelete && (
-            <button onClick={() => setConfirmDelete(false)} style={{ marginLeft: '0.5em', marginTop: '1em' }}>
+            <button onClick={() => setConfirmDelete(false)} style={{ marginLeft: '0.5em', marginTop: '2em', fontSize: '0.8em' }}>
               Cancel
             </button>
           )}
