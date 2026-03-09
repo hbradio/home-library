@@ -18,6 +18,85 @@ interface Book {
 
 type GroupBy = 'none' | 'dewey' | 'loc'
 
+const DEWEY_CLASSES: Record<string, string> = {
+  '0': '000 — Computer Science, Information & General Works',
+  '1': '100 — Philosophy & Psychology',
+  '2': '200 — Religion',
+  '3': '300 — Social Sciences',
+  '4': '400 — Language',
+  '5': '500 — Science',
+  '6': '600 — Technology',
+  '7': '700 — Arts & Recreation',
+  '8': '800 — Literature',
+  '9': '900 — History & Geography',
+}
+
+const LC_CLASSES: Record<string, string> = {
+  'A': 'A — General Works',
+  'B': 'B — Philosophy, Psychology & Religion',
+  'C': 'C — Auxiliary Sciences of History',
+  'D': 'D — World History',
+  'E': 'E — American History',
+  'F': 'F — Americas (Local History)',
+  'G': 'G — Geography, Anthropology & Recreation',
+  'H': 'H — Social Sciences',
+  'J': 'J — Political Science',
+  'K': 'K — Law',
+  'L': 'L — Education',
+  'M': 'M — Music',
+  'N': 'N — Fine Arts',
+  'P': 'P — Language & Literature',
+  'PA': 'PA — Greek & Latin Language & Literature',
+  'PB': 'PB — Modern European Languages (Celtic)',
+  'PC': 'PC — Romance Languages',
+  'PD': 'PD — Germanic & Scandinavian Languages',
+  'PE': 'PE — English Language',
+  'PF': 'PF — West Germanic Languages',
+  'PG': 'PG — Slavic, Baltic & Albanian Languages',
+  'PH': 'PH — Uralic & Basque Languages',
+  'PJ': 'PJ — Semitic Languages & Literatures',
+  'PK': 'PK — Indo-Iranian Languages & Literatures',
+  'PL': 'PL — East Asian, African & Oceanian Languages',
+  'PM': 'PM — Indigenous American & Artificial Languages',
+  'PN': 'PN — Literature (General)',
+  'PQ': 'PQ — French, Italian, Spanish & Portuguese Literature',
+  'PR': 'PR — English Literature',
+  'PS': 'PS — American Literature',
+  'PT': 'PT — German, Dutch & Scandinavian Literature',
+  'PZ': 'PZ — Fiction & Juvenile Literature',
+  'Q': 'Q — Science',
+  'QA': 'QA — Mathematics',
+  'QB': 'QB — Astronomy',
+  'QC': 'QC — Physics',
+  'QD': 'QD — Chemistry',
+  'QE': 'QE — Geology',
+  'QH': 'QH — Natural History & Biology',
+  'QK': 'QK — Botany',
+  'QL': 'QL — Zoology',
+  'QM': 'QM — Human Anatomy',
+  'QP': 'QP — Physiology',
+  'QR': 'QR — Microbiology',
+  'R': 'R — Medicine',
+  'S': 'S — Agriculture',
+  'T': 'T — Technology',
+  'U': 'U — Military Science',
+  'V': 'V — Naval Science',
+  'Z': 'Z — Bibliography & Library Science',
+}
+
+function getDeweyGroup(code: string): string {
+  const digit = code.charAt(0)
+  return DEWEY_CLASSES[digit] || digit
+}
+
+function getLCGroup(code: string): string {
+  // Try 2-letter match first, then 1-letter
+  const two = code.substring(0, 2).toUpperCase()
+  if (LC_CLASSES[two]) return LC_CLASSES[two]
+  const one = code.charAt(0).toUpperCase()
+  return LC_CLASSES[one] || one
+}
+
 export default function Browse() {
   const { fetchWithAuth } = useApi()
   const [books, setBooks] = useState<Book[]>([])
@@ -63,10 +142,12 @@ export default function Browse() {
 
   const groupBooks = (books: Book[]): [string, Book[]][] => {
     if (groupBy === 'none') return [['', books]]
-    const key = groupBy === 'dewey' ? 'dewey_decimal' : 'lc_classification'
     const groups: Record<string, Book[]> = {}
     for (const book of books) {
-      const label = book[key] || 'Unclassified'
+      const raw = groupBy === 'dewey' ? book.dewey_decimal : book.lc_classification
+      const label = raw
+        ? (groupBy === 'dewey' ? getDeweyGroup(raw) : getLCGroup(raw))
+        : 'Unclassified'
       if (!groups[label]) groups[label] = []
       groups[label].push(book)
     }
