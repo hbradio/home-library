@@ -1,4 +1,4 @@
-import { Routes, Route, useNavigate } from 'react-router-dom'
+import { Routes, Route, useNavigate, Link } from 'react-router-dom'
 import { useAuth0 } from '@auth0/auth0-react'
 import { useEffect } from 'react'
 import Home from './pages/Home'
@@ -32,7 +32,7 @@ function App() {
   return (
     <div className="app">
       <div className="header">
-        <h1><a href="/" style={{ color: 'inherit', textDecoration: 'none' }}>Home Library</a></h1>
+        <h1><Link to="/" style={{ color: 'inherit', textDecoration: 'none' }}>Home Library</Link></h1>
         <AuthButtons />
       </div>
       <Routes>
