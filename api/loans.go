@@ -16,7 +16,7 @@ type LoanResponse struct {
 	PatronName *string           `json:"patron_name,omitempty"`
 }
 
-func LoansHandler(w http.ResponseWriter, r *http.Request) {
+func Loans(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	sub, accessToken, err := auth.ValidateRequest(r)

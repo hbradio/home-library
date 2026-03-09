@@ -10,7 +10,7 @@ import (
 	"home-library/pkg/models"
 )
 
-func BooksHandler(w http.ResponseWriter, r *http.Request) {
+func Books(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	sub, accessToken, err := auth.ValidateRequest(r)

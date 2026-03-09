@@ -15,12 +15,12 @@ func main() {
 	godotenv.Load()
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/health", handler.HealthHandler)
-	mux.HandleFunc("/api/user", handler.UserHandler)
-	mux.HandleFunc("/api/book-lookup", handler.BookLookupHandler)
-	mux.HandleFunc("/api/books", handler.BooksHandler)
-	mux.HandleFunc("/api/patrons", handler.PatronsHandler)
-	mux.HandleFunc("/api/loans", handler.LoansHandler)
+	mux.HandleFunc("/api/health", handler.Health)
+	mux.HandleFunc("/api/user", handler.User)
+	mux.HandleFunc("/api/book-lookup", handler.BookLookup)
+	mux.HandleFunc("/api/books", handler.Books)
+	mux.HandleFunc("/api/patrons", handler.Patrons)
+	mux.HandleFunc("/api/loans", handler.Loans)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:5179"},

@@ -9,7 +9,7 @@ import (
 	"home-library/pkg/models"
 )
 
-func UserHandler(w http.ResponseWriter, r *http.Request) {
+func User(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if r.Method != http.MethodGet {
 		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
