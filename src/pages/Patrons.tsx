@@ -44,7 +44,7 @@ export default function Patrons() {
 
   return (
     <div>
-      <h2>Patrons</h2>
+      <h2>Patrons <span style={{ fontSize: '0.5em', fontWeight: 'normal', color: '#8b7355' }}>(Esc to go back)</span></h2>
       <input
         type="text"
         placeholder="Search patrons..."

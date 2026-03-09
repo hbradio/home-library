@@ -55,7 +55,7 @@ export default function BookDetail() {
           onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
         />
         <div>
-          <h2 style={{ marginTop: 0 }}>{book.title}</h2>
+          <h2 style={{ marginTop: 0 }}>{book.title} <span style={{ fontSize: '0.5em', fontWeight: 'normal', color: '#8b7355' }}>(Esc to go back)</span></h2>
           <dl className="meta">
             {book.author && <><dt>Author:</dt><dd>{book.author}</dd><br /></>}
             {book.genre && <><dt>Genre:</dt><dd>{book.genre}</dd><br /></>}

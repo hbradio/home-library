@@ -88,7 +88,7 @@ export default function LoanReturn() {
 
   return (
     <div>
-      <h2>Loan / Return</h2>
+      <h2>Loan / Return <span style={{ fontSize: '0.5em', fontWeight: 'normal', color: '#8b7355' }}>(Esc to go back)</span></h2>
       <p style={{ color: '#8b7355' }}>Scan a book to automatically check it out or return it.</p>
 
       <div className="scan-area">

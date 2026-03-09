@@ -1,9 +1,28 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth0 } from '@auth0/auth0-react'
+import { useRef, useEffect } from 'react'
 
 export default function Home() {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuth0()
+  const buttonsRef = useRef<(HTMLButtonElement | null)[]>([])
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      buttonsRef.current[0]?.focus()
+    }
+  }, [isAuthenticated])
+
+  const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
+    const count = buttonsRef.current.length
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      buttonsRef.current[(index + 1) % count]?.focus()
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      buttonsRef.current[(index - 1 + count) % count]?.focus()
+    }
+  }
 
   if (!isAuthenticated) {
     return (
@@ -16,20 +35,26 @@ export default function Home() {
     )
   }
 
+  const buttons = [
+    { label: 'Add Book', path: '/add' },
+    { label: 'Browse', path: '/browse' },
+    { label: 'Loan / Return', path: '/loan' },
+    { label: 'Patrons', path: '/patrons' },
+  ]
+
   return (
     <div className="home-buttons">
-      <button className="home-button" onClick={() => navigate('/add')} tabIndex={1}>
-        Add Book
-      </button>
-      <button className="home-button" onClick={() => navigate('/browse')} tabIndex={2}>
-        Browse
-      </button>
-      <button className="home-button" onClick={() => navigate('/loan')} tabIndex={3}>
-        Loan / Return
-      </button>
-      <button className="home-button" onClick={() => navigate('/patrons')} tabIndex={4}>
-        Patrons
-      </button>
+      {buttons.map((btn, i) => (
+        <button
+          key={btn.path}
+          className="home-button"
+          ref={(el) => { buttonsRef.current[i] = el }}
+          onClick={() => navigate(btn.path)}
+          onKeyDown={(e) => handleKeyDown(e, i)}
+        >
+          {btn.label}
+        </button>
+      ))}
     </div>
   )
 }

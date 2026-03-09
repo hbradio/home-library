@@ -46,7 +46,7 @@ export default function PatronDetail() {
 
   return (
     <div className="detail-page">
-      <h2>{patron.first_name} {patron.last_name}</h2>
+      <h2>{patron.first_name} {patron.last_name} <span style={{ fontSize: '0.5em', fontWeight: 'normal', color: '#8b7355' }}>(Esc to go back)</span></h2>
       <p style={{ color: '#8b7355' }}>Patron since {new Date(patron.created_at).toLocaleDateString()}</p>
 
       <h3>Currently Checked Out</h3>

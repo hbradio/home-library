@@ -38,7 +38,7 @@ export default function Browse() {
 
   return (
     <div>
-      <h2>Browse Library</h2>
+      <h2>Browse Library <span style={{ fontSize: '0.5em', fontWeight: 'normal', color: '#8b7355' }}>(Esc to go back)</span></h2>
       <div className="filters">
         <input placeholder="Filter by title..." value={title} onChange={(e) => setTitle(e.target.value)} />
         <input placeholder="Filter by author..." value={author} onChange={(e) => setAuthor(e.target.value)} />
