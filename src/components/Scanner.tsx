@@ -1,5 +1,14 @@
 import { useEffect, useRef } from 'react'
-import { Html5Qrcode } from 'html5-qrcode'
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode'
+
+const BARCODE_FORMATS = [
+  Html5QrcodeSupportedFormats.EAN_13,
+  Html5QrcodeSupportedFormats.EAN_8,
+  Html5QrcodeSupportedFormats.UPC_A,
+  Html5QrcodeSupportedFormats.UPC_E,
+  Html5QrcodeSupportedFormats.CODE_128,
+  Html5QrcodeSupportedFormats.CODE_39,
+]
 
 interface Props {
   onScan: (isbn: string) => void
@@ -14,12 +23,15 @@ export default function Scanner({ onScan, active }: Props) {
   useEffect(() => {
     if (!active || !containerRef.current) return
 
-    const scanner = new Html5Qrcode('scanner-container')
+    const scanner = new Html5Qrcode('scanner-container', {
+      formatsToSupport: BARCODE_FORMATS,
+      verbose: false,
+    })
     scannerRef.current = scanner
 
     scanner.start(
       { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 250, height: 100 } },
+      { fps: 15, qrbox: { width: 300, height: 150 }, aspectRatio: 1.5 },
       (text) => {
         const isbn = text.replace(/-/g, '')
         if (isbn !== lastScanRef.current && isbn.length >= 10) {
