@@ -1,73 +1,62 @@
-# React + TypeScript + Vite
+# Home Library
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A personal book library management app. Log in with Google or email, scan books by ISBN (keyboard or camera), browse your collection, and loan/return books to friends.
 
-Currently, two official plugins are available:
+**Live:** https://home-library-ten.vercel.app
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Tech Stack
 
-## React Compiler
+- **Frontend:** React + TypeScript (Vite)
+- **Backend:** Go serverless functions (Vercel)
+- **Database:** CockroachDB Cloud (PostgreSQL-compatible)
+- **Auth:** Auth0 (Google social + email/password)
+- **Book Data:** Open Library API
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Features
 
-## Expanding the ESLint configuration
+- **ISBN Scanning** - USB barcode scanner support (auto-focused input) + phone camera via html5-qrcode
+- **Book Lookup** - Automatic metadata from Open Library (title, author, genre, cover image)
+- **Loan/Return** - Scan a book to auto-detect checkout vs. return. Event-sourced loan history
+- **Patron Management** - Track who has your books
+- **Filtering** - Browse by title, author, or genre
+- **Multi-user** - Each user has their own isolated library
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Local Development
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+```bash
+# Prerequisites: Docker, Go 1.21+, Node 18+
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+# Start everything (Docker PostgreSQL + Go API + Vite)
+npm run dev:all
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# Or run individually:
+npm run dev:docker    # Start PostgreSQL in Docker
+npm run dev:api       # Start Go API on :8089
+npm run dev           # Start Vite on :5179
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Create a `.env` file:
 ```
+VITE_AUTH0_DOMAIN=your-auth0-domain
+VITE_AUTH0_CLIENT_ID=your-spa-client-id
+VITE_AUTH0_AUDIENCE=your-api-identifier
+AUTH0_DOMAIN=your-auth0-domain
+AUTH0_AUDIENCE=your-api-identifier
+DATABASE_URL=postgresql://user:pass@localhost:5433/home_library?sslmode=disable
+```
+
+## API Endpoints
+
+| Endpoint | Methods | Description |
+|----------|---------|-------------|
+| `/api/health` | GET | Health check |
+| `/api/user` | GET | Get/create authenticated user |
+| `/api/book-lookup?isbn=X` | GET | Look up book metadata from Open Library |
+| `/api/books` | GET, POST, DELETE | CRUD for books (with filter params) |
+| `/api/patrons` | GET, POST, DELETE | CRUD for patrons |
+| `/api/loans` | GET, POST | Loan history + smart checkout/return |
+
+## Keyboard Shortcuts
+
+- **ESC** - Return to home screen from any page
+- **Enter** - Submit ISBN in scan input
