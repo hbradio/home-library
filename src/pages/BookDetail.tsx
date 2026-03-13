@@ -104,17 +104,21 @@ export default function BookDetail() {
     load()
   }, [id, fetchWithAuth])
 
+  const isManual = book?.isbn?.startsWith('MANUAL-')
+
   if (!book) return <div className="loading">Loading...</div>
 
   return (
     <div className="detail-page">
       <div style={{ display: 'flex', gap: '2em', flexWrap: 'wrap' }}>
-        <img
-          className="cover"
-          src={`https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg`}
-          alt={`Cover of ${book.title}`}
-          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-        />
+        {!isManual && (
+          <img
+            className="cover"
+            src={`https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg`}
+            alt={`Cover of ${book.title}`}
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+          />
+        )}
         <div>
           <h2 style={{ marginTop: 0 }}>
             {editing
@@ -150,7 +154,7 @@ export default function BookDetail() {
                 {book.publish_year && <><dt>Year:</dt><dd>{book.publish_year}</dd><br /></>}
                 {book.dewey_decimal && <><dt>Dewey Decimal:</dt><dd>{book.dewey_decimal}</dd><br /></>}
                 {book.lc_classification && <><dt>LoC:</dt><dd>{book.lc_classification}</dd><br /></>}
-                <dt>ISBN:</dt><dd>{book.isbn}</dd><br />
+                <dt>ISBN:</dt><dd>{isManual ? <span style={{ color: '#8b7355', fontStyle: 'italic' }}>Manual entry</span> : book.isbn}</dd><br />
                 <dt>Status:</dt>
                 <dd>
                   <span className={`status-badge ${book.loan_status}`}>
