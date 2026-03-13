@@ -10,6 +10,7 @@ interface SessionItem {
 }
 
 interface ManualFields {
+  isbn: string
   title: string
   author: string
   genre: string
@@ -17,7 +18,7 @@ interface ManualFields {
   publish_year: string
 }
 
-const emptyManual: ManualFields = { title: '', author: '', genre: '', publisher: '', publish_year: '' }
+const emptyManual: ManualFields = { isbn: '', title: '', author: '', genre: '', publisher: '', publish_year: '' }
 
 export default function AddBook() {
   const { fetchWithAuth } = useApi()
@@ -81,7 +82,7 @@ export default function AddBook() {
       setMessage({ text: 'Title is required', type: 'error' })
       return
     }
-    const isbn = `MANUAL-${Date.now()}`
+    const isbn = manual.isbn.trim() || `MANUAL-${Date.now()}`
     const year = manual.publish_year ? parseInt(manual.publish_year, 10) : null
     const body = {
       isbn,
@@ -116,6 +117,8 @@ export default function AddBook() {
       {manualMode ? (
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '0.4em 0.8em', alignItems: 'center', maxWidth: '500px' }}>
+            <label>ISBN</label>
+            <input value={manual.isbn} onChange={(e) => setManual({ ...manual, isbn: e.target.value })} placeholder="Optional" />
             <label>Title *</label>
             <input value={manual.title} onChange={(e) => setManual({ ...manual, title: e.target.value })} />
             <label>Author</label>
