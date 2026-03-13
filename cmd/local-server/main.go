@@ -21,10 +21,12 @@ func main() {
 	mux.HandleFunc("/api/books", handler.Books)
 	mux.HandleFunc("/api/patrons", handler.Patrons)
 	mux.HandleFunc("/api/loans", handler.Loans)
+	mux.HandleFunc("/api/shares", handler.Shares)
+	mux.HandleFunc("/api/shared-libraries", handler.SharedLibraries)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:5179"},
-		AllowedMethods:   []string{"GET", "POST", "DELETE", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Authorization", "Content-Type"},
 		AllowCredentials: true,
 	})

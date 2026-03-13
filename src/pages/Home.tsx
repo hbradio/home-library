@@ -42,6 +42,11 @@ export default function Home() {
     { label: 'Patrons', path: '/patrons' },
   ]
 
+  const secondaryButtons = [
+    { label: 'Sharing', path: '/sharing' },
+    { label: 'Shared Libraries', path: '/shared' },
+  ]
+
   return (
     <div className="home-buttons">
       {buttons.map((btn, i) => (
@@ -55,6 +60,19 @@ export default function Home() {
           {btn.label}
         </button>
       ))}
+      <div style={{ display: 'flex', gap: '0.5em', justifyContent: 'center', marginTop: '0.5em' }}>
+        {secondaryButtons.map((btn, i) => (
+          <button
+            key={btn.path}
+            ref={(el) => { buttonsRef.current[buttons.length + i] = el }}
+            onClick={() => navigate(btn.path)}
+            onKeyDown={(e) => handleKeyDown(e, buttons.length + i)}
+            style={{ fontSize: '0.8em', padding: '0.4em 1em', color: '#8b7355', background: 'transparent', border: '1px solid #d4c9b8', cursor: 'pointer' }}
+          >
+            {btn.label}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
