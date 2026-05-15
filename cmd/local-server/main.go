@@ -23,6 +23,8 @@ func main() {
 	mux.HandleFunc("/api/loans", handler.Loans)
 	mux.HandleFunc("/api/shares", handler.Shares)
 	mux.HandleFunc("/api/shared-libraries", handler.SharedLibraries)
+	mux.HandleFunc("/api/public-link", handler.PublicLink)
+	mux.HandleFunc("/api/public-library", handler.PublicLibrary)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:5179"},

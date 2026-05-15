@@ -11,8 +11,13 @@ import PatronDetail from './pages/PatronDetail'
 import Sharing from './pages/Sharing'
 import SharedLibraries from './pages/SharedLibraries'
 import SharedBrowse from './pages/SharedBrowse'
+import Sharing from './pages/Sharing'
+import SharedLibraries from './pages/SharedLibraries'
+import SharedBrowse from './pages/SharedBrowse'
 import SharedBookDetail from './pages/SharedBookDetail'
+import PublicLibrary from './pages/PublicLibrary'
 import AuthButtons from './components/AuthButtons'
+import ProtectedRoute from './components/ProtectedRoute'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -51,6 +56,7 @@ function App() {
         <Route path="/shared" element={<ProtectedRoute><SharedLibraries /></ProtectedRoute>} />
         <Route path="/shared/:ownerId" element={<ProtectedRoute><SharedBrowse /></ProtectedRoute>} />
         <Route path="/shared/:ownerId/book/:bookId" element={<ProtectedRoute><SharedBookDetail /></ProtectedRoute>} />
+        <Route path="/lib/:slug" element={<PublicLibrary />} />
       </Routes>
     </div>
   )

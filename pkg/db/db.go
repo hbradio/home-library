@@ -83,6 +83,12 @@ func migrate(db *sql.DB) error {
 			UNIQUE(owner_id, shared_with_email)
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_library_shares_email ON library_shares(shared_with_email)`,
+		`CREATE TABLE IF NOT EXISTS public_links (
+			id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+			user_id UUID NOT NULL UNIQUE REFERENCES users(id),
+			slug TEXT NOT NULL UNIQUE,
+			created_at TIMESTAMPTZ DEFAULT now()
+		)`,
 	}
 	for _, stmt := range statements {
 		if _, err := db.Exec(stmt); err != nil {
