@@ -104,8 +104,8 @@ export default function PublicLibrary() {
   const [genre, setGenre] = useState('')
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
-  const [groupBy, setGroupBy] = useState<GroupBy>('loc')
-  const [displayMode, setDisplayMode] = useState<DisplayMode>('titles')
+  const [groupBy, setGroupBy] = useState<GroupBy>('none')
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('covers')
 
   useEffect(() => {
     const load = async () => {
