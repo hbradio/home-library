@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useApi } from '../lib/api'
 import BookCard from '../components/BookCard'
 
@@ -17,6 +18,7 @@ interface Book {
 }
 
 type GroupBy = 'none' | 'dewey' | 'loc'
+type DisplayMode = 'titles' | 'covers'
 
 const DEWEY_CLASSES: Record<string, string> = {
   '0': '000 — Computer Science, Information & General Works',
@@ -99,12 +101,14 @@ function getLCGroup(code: string): string {
 
 export default function Browse() {
   const { fetchWithAuth } = useApi()
+  const navigate = useNavigate()
   const [books, setBooks] = useState<Book[]>([])
   const [title, setTitle] = useState('')
   const [author, setAuthor] = useState('')
   const [genre, setGenre] = useState('')
   const [loading, setLoading] = useState(true)
   const [groupBy, setGroupBy] = useState<GroupBy>('loc')
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('titles')
 
   useEffect(() => {
     const load = async () => {
@@ -167,7 +171,12 @@ export default function Browse() {
         <input placeholder="Filter by genre..." value={genre} onChange={(e) => setGenre(e.target.value)} />
         <button onClick={exportCsv} disabled={loading || books.length === 0}>Export CSV</button>
       </div>
-      <div className="group-toggle" style={{ margin: '0.5em 0 1em', display: 'flex', gap: '1em', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div className="group-toggle" style={{ margin: '0.5em 0 0.5em', display: 'flex', gap: '1em', alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={{ color: '#8b7355', fontWeight: 600 }}>Display:</span>
+        <label><input type="radio" name="displayMode" checked={displayMode === 'titles'} onChange={() => setDisplayMode('titles')} /> Titles</label>
+        <label><input type="radio" name="displayMode" checked={displayMode === 'covers'} onChange={() => { setDisplayMode('covers'); setGroupBy('none') }} /> Covers</label>
+      </div>
+      <div className="group-toggle" style={{ margin: '0 0 1em', display: 'flex', gap: '1em', alignItems: 'center', flexWrap: 'wrap' }}>
         <span style={{ color: '#8b7355', fontWeight: 600 }}>Group by:</span>
         <label><input type="radio" name="groupBy" checked={groupBy === 'none'} onChange={() => setGroupBy('none')} /> None</label>
         <label><input type="radio" name="groupBy" checked={groupBy === 'dewey'} onChange={() => setGroupBy('dewey')} /> Dewey Decimal</label>
@@ -181,7 +190,42 @@ export default function Browse() {
         groupBooks(books).map(([group, groupedBooks]) => (
           <div key={group || '_all'}>
             {group && <h3 style={{ color: '#5c3d2e', borderBottom: '1px solid #d4c9b8', paddingBottom: '0.3em', marginTop: '1.5em' }}>{group}</h3>}
-            {groupedBooks.map((book) => <BookCard key={book.id} book={book} />)}
+            {displayMode === 'titles'
+              ? groupedBooks.map((book) => <BookCard key={book.id} book={book} />)
+              : (
+                <div className="cover-grid">
+                  {groupedBooks.map((book) => {
+                    const isManual = book.isbn?.startsWith('MANUAL-')
+                    return (
+                      <div key={book.id} className="cover-grid-item" onClick={() => navigate(`/book/${book.id}`)}>
+                        {isManual ? (
+                          <div className="cover-placeholder">
+                            <span>{book.title}</span>
+                          </div>
+                        ) : (
+                          <>
+                            <img
+                              src={`https://covers.openlibrary.org/b/isbn/${book.isbn}-M.jpg`}
+                              alt={book.title}
+                              loading="lazy"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement
+                                target.style.display = 'none'
+                                const placeholder = target.nextElementSibling as HTMLElement
+                                if (placeholder) placeholder.style.display = 'flex'
+                              }}
+                            />
+                            <div className="cover-placeholder" style={{ display: 'none' }}>
+                              <span>{book.title}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            }
           </div>
         ))
       )}
