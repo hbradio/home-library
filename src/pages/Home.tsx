@@ -44,7 +44,6 @@ export default function Home() {
 
   const secondaryButtons = [
     { label: 'Sharing', path: '/sharing' },
-    { label: 'Shared Libraries', path: '/shared' },
   ]
 
   return (
