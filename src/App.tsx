@@ -9,12 +9,8 @@ import LoanReturn from './pages/LoanReturn'
 import Patrons from './pages/Patrons'
 import PatronDetail from './pages/PatronDetail'
 import Sharing from './pages/Sharing'
-import SharedLibraries from './pages/SharedLibraries'
-import SharedBrowse from './pages/SharedBrowse'
-import Sharing from './pages/Sharing'
 import PublicLibrary from './pages/PublicLibrary'
 import AuthButtons from './components/AuthButtons'
-import ProtectedRoute from './components/ProtectedRoute'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
