@@ -106,6 +106,8 @@ export default function PublicLibrary() {
   const [notFound, setNotFound] = useState(false)
   const [groupBy, setGroupBy] = useState<GroupBy>('none')
   const [displayMode, setDisplayMode] = useState<DisplayMode>('covers')
+  const [flippedCovers, setFlippedCovers] = useState<Set<string>>(new Set())
+  const [validCovers, setValidCovers] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const load = async () => {
@@ -199,11 +201,34 @@ export default function PublicLibrary() {
                 <div className="cover-grid">
                   {groupedBooks.map((book) => {
                     const isManual = book.isbn?.startsWith('MANUAL-')
+                    const isFlipped = flippedCovers.has(book.id)
+                    const hasValidCover = validCovers.has(book.id)
+                    const showPlaceholder = (target: HTMLImageElement) => {
+                      target.style.display = 'none'
+                      const placeholder = target.nextElementSibling as HTMLElement
+                      if (placeholder) placeholder.style.display = 'flex'
+                    }
+                    const toggleFlip = () => {
+                      if (!hasValidCover) return
+                      setFlippedCovers(prev => {
+                        const next = new Set(prev)
+                        if (next.has(book.id)) next.delete(book.id)
+                        else next.add(book.id)
+                        return next
+                      })
+                    }
                     return (
-                      <div key={book.id} className="cover-grid-item" style={{ cursor: 'default' }}>
+                      <div
+                        key={book.id}
+                        className={`cover-grid-item${hasValidCover ? ' flippable' : ''}`}
+                        style={hasValidCover ? undefined : { cursor: 'default' }}
+                        onClick={toggleFlip}
+                      >
                         {isManual ? (
                           <div className="cover-placeholder">
-                            <span>{book.title}</span>
+                            <span className="cover-placeholder-title">{book.title}</span>
+                            {book.author && <span className="cover-placeholder-author">{book.author}</span>}
+                            {book.publish_year && <span className="cover-placeholder-year">{book.publish_year}</span>}
                           </div>
                         ) : (
                           <>
@@ -211,15 +236,26 @@ export default function PublicLibrary() {
                               src={`https://covers.openlibrary.org/b/isbn/${book.isbn}-M.jpg`}
                               alt={book.title}
                               loading="lazy"
-                              onError={(e) => {
+                              style={isFlipped ? { display: 'none' } : undefined}
+                              onLoad={(e) => {
                                 const target = e.target as HTMLImageElement
-                                target.style.display = 'none'
-                                const placeholder = target.nextElementSibling as HTMLElement
-                                if (placeholder) placeholder.style.display = 'flex'
+                                if (target.naturalWidth < 20 || target.naturalHeight < 20) {
+                                  showPlaceholder(target)
+                                } else {
+                                  setValidCovers(prev => {
+                                    if (prev.has(book.id)) return prev
+                                    const next = new Set(prev)
+                                    next.add(book.id)
+                                    return next
+                                  })
+                                }
                               }}
+                              onError={(e) => showPlaceholder(e.target as HTMLImageElement)}
                             />
-                            <div className="cover-placeholder" style={{ display: 'none' }}>
-                              <span>{book.title}</span>
+                            <div className="cover-placeholder" style={{ display: isFlipped ? 'flex' : 'none' }}>
+                              <span className="cover-placeholder-title">{book.title}</span>
+                              {book.author && <span className="cover-placeholder-author">{book.author}</span>}
+                              {book.publish_year && <span className="cover-placeholder-year">{book.publish_year}</span>}
                             </div>
                           </>
                         )}

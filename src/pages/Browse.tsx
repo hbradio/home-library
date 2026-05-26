@@ -196,11 +196,18 @@ export default function Browse() {
                 <div className="cover-grid">
                   {groupedBooks.map((book) => {
                     const isManual = book.isbn?.startsWith('MANUAL-')
+                    const showPlaceholder = (target: HTMLImageElement) => {
+                      target.style.display = 'none'
+                      const placeholder = target.nextElementSibling as HTMLElement
+                      if (placeholder) placeholder.style.display = 'flex'
+                    }
                     return (
                       <div key={book.id} className="cover-grid-item" onClick={() => navigate(`/book/${book.id}`)}>
                         {isManual ? (
                           <div className="cover-placeholder">
-                            <span>{book.title}</span>
+                            <span className="cover-placeholder-title">{book.title}</span>
+                            {book.author && <span className="cover-placeholder-author">{book.author}</span>}
+                            {book.publish_year && <span className="cover-placeholder-year">{book.publish_year}</span>}
                           </div>
                         ) : (
                           <>
@@ -208,15 +215,18 @@ export default function Browse() {
                               src={`https://covers.openlibrary.org/b/isbn/${book.isbn}-M.jpg`}
                               alt={book.title}
                               loading="lazy"
-                              onError={(e) => {
+                              onLoad={(e) => {
                                 const target = e.target as HTMLImageElement
-                                target.style.display = 'none'
-                                const placeholder = target.nextElementSibling as HTMLElement
-                                if (placeholder) placeholder.style.display = 'flex'
+                                if (target.naturalWidth < 20 || target.naturalHeight < 20) {
+                                  showPlaceholder(target)
+                                }
                               }}
+                              onError={(e) => showPlaceholder(e.target as HTMLImageElement)}
                             />
                             <div className="cover-placeholder" style={{ display: 'none' }}>
-                              <span>{book.title}</span>
+                              <span className="cover-placeholder-title">{book.title}</span>
+                              {book.author && <span className="cover-placeholder-author">{book.author}</span>}
+                              {book.publish_year && <span className="cover-placeholder-year">{book.publish_year}</span>}
                             </div>
                           </>
                         )}
