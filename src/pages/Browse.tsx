@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApi } from '../lib/api'
-import { getCoverColor } from '../lib/coverColors'
 import BookCard from '../components/BookCard'
+import BookCover from '../components/BookCover'
 
 interface Book {
   id: string
@@ -195,46 +195,20 @@ export default function Browse() {
               ? groupedBooks.map((book) => <BookCard key={book.id} book={book} />)
               : (
                 <div className="cover-grid">
-                  {groupedBooks.map((book) => {
-                    const isManual = book.isbn?.startsWith('MANUAL-')
-                    const coverColor = getCoverColor(book.id)
-                    const showPlaceholder = (target: HTMLImageElement) => {
-                      target.style.display = 'none'
-                      const placeholder = target.nextElementSibling as HTMLElement
-                      if (placeholder) placeholder.style.display = 'flex'
-                    }
-                    return (
-                      <div key={book.id} className="cover-grid-item" onClick={() => navigate(`/book/${book.id}`)}>
-                        {isManual ? (
-                          <div className="cover-placeholder" style={{ background: coverColor.bg }}>
-                            <span className="cover-placeholder-title" style={{ color: coverColor.title }}>{book.title}</span>
-                            {book.author && <span className="cover-placeholder-author" style={{ color: coverColor.subtitle }}>{book.author}</span>}
-                            {book.publish_year && <span className="cover-placeholder-year" style={{ color: coverColor.subtitle }}>{book.publish_year}</span>}
-                          </div>
-                        ) : (
-                          <>
-                            <img
-                              src={`https://covers.openlibrary.org/b/isbn/${book.isbn}-M.jpg`}
-                              alt={book.title}
-                              loading="lazy"
-                              onLoad={(e) => {
-                                const target = e.target as HTMLImageElement
-                                if (target.naturalWidth < 20 || target.naturalHeight < 20) {
-                                  showPlaceholder(target)
-                                }
-                              }}
-                              onError={(e) => showPlaceholder(e.target as HTMLImageElement)}
-                            />
-                            <div className="cover-placeholder" style={{ display: 'none', background: coverColor.bg }}>
-                              <span className="cover-placeholder-title" style={{ color: coverColor.title }}>{book.title}</span>
-                              {book.author && <span className="cover-placeholder-author" style={{ color: coverColor.subtitle }}>{book.author}</span>}
-                              {book.publish_year && <span className="cover-placeholder-year" style={{ color: coverColor.subtitle }}>{book.publish_year}</span>}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )
-                  })}
+                  {groupedBooks.map((book) => (
+                    <div key={book.id} className="cover-grid-item" onClick={() => navigate(`/book/${book.id}`)}>
+                      <BookCover
+                        isbn={book.isbn}
+                        bookId={book.id}
+                        title={book.title}
+                        author={book.author}
+                        publishYear={book.publish_year}
+                        alt={book.title}
+                        size="M"
+                        loading="lazy"
+                      />
+                    </div>
+                  ))}
                 </div>
               )
             }

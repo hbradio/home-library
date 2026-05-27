@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useApi } from '../lib/api'
+import BookCover from '../components/BookCover'
 
 interface Book {
   id: string
@@ -112,11 +113,16 @@ export default function BookDetail() {
     <div className="detail-page">
       <div style={{ display: 'flex', gap: '2em', flexWrap: 'wrap' }}>
         {!isManual && (
-          <img
-            className="cover"
-            src={`https://covers.openlibrary.org/b/isbn/${book.isbn}-L.jpg`}
+          <BookCover
+            isbn={book.isbn}
+            bookId={book.id}
+            title={book.title}
+            author={book.author}
+            publishYear={book.publish_year}
             alt={`Cover of ${book.title}`}
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+            size="L"
+            className="cover"
+            loading="eager"
           />
         )}
         <div>

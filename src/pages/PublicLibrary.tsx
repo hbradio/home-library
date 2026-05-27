@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { getCoverColor } from '../lib/coverColors'
+import BookCover from '../components/BookCover'
 
 interface Book {
   id: string
@@ -201,15 +202,9 @@ export default function PublicLibrary() {
               : (
                 <div className="cover-grid">
                   {groupedBooks.map((book) => {
-                    const isManual = book.isbn?.startsWith('MANUAL-')
                     const isFlipped = flippedCovers.has(book.id)
                     const hasValidCover = validCovers.has(book.id)
                     const coverColor = getCoverColor(book.id)
-                    const showPlaceholder = (target: HTMLImageElement) => {
-                      target.style.display = 'none'
-                      const placeholder = target.nextElementSibling as HTMLElement
-                      if (placeholder) placeholder.style.display = 'flex'
-                    }
                     const toggleFlip = () => {
                       if (!hasValidCover) return
                       setFlippedCovers(prev => {
@@ -226,40 +221,31 @@ export default function PublicLibrary() {
                         style={hasValidCover ? undefined : { cursor: 'default' }}
                         onClick={toggleFlip}
                       >
-                        {isManual ? (
+                        {isFlipped ? (
                           <div className="cover-placeholder" style={{ background: coverColor.bg }}>
                             <span className="cover-placeholder-title" style={{ color: coverColor.title }}>{book.title}</span>
                             {book.author && <span className="cover-placeholder-author" style={{ color: coverColor.subtitle }}>{book.author}</span>}
                             {book.publish_year && <span className="cover-placeholder-year" style={{ color: coverColor.subtitle }}>{book.publish_year}</span>}
                           </div>
                         ) : (
-                          <>
-                            <img
-                              src={`https://covers.openlibrary.org/b/isbn/${book.isbn}-M.jpg`}
-                              alt={book.title}
-                              loading="lazy"
-                              style={isFlipped ? { display: 'none' } : undefined}
-                              onLoad={(e) => {
-                                const target = e.target as HTMLImageElement
-                                if (target.naturalWidth < 20 || target.naturalHeight < 20) {
-                                  showPlaceholder(target)
-                                } else {
-                                  setValidCovers(prev => {
-                                    if (prev.has(book.id)) return prev
-                                    const next = new Set(prev)
-                                    next.add(book.id)
-                                    return next
-                                  })
-                                }
-                              }}
-                              onError={(e) => showPlaceholder(e.target as HTMLImageElement)}
-                            />
-                            <div className="cover-placeholder" style={{ display: isFlipped ? 'flex' : 'none', background: coverColor.bg }}>
-                              <span className="cover-placeholder-title" style={{ color: coverColor.title }}>{book.title}</span>
-                              {book.author && <span className="cover-placeholder-author" style={{ color: coverColor.subtitle }}>{book.author}</span>}
-                              {book.publish_year && <span className="cover-placeholder-year" style={{ color: coverColor.subtitle }}>{book.publish_year}</span>}
-                            </div>
-                          </>
+                          <BookCover
+                            isbn={book.isbn}
+                            bookId={book.id}
+                            title={book.title}
+                            author={book.author}
+                            publishYear={book.publish_year}
+                            alt={book.title}
+                            size="M"
+                            loading="lazy"
+                            onValidCover={() => {
+                              setValidCovers(prev => {
+                                if (prev.has(book.id)) return prev
+                                const next = new Set(prev)
+                                next.add(book.id)
+                                return next
+                              })
+                            }}
+                          />
                         )}
                       </div>
                     )
