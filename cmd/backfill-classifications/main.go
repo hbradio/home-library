@@ -173,6 +173,7 @@ func main() {
 		needDeweyGuess := (book.DeweyDecimal == "" && foundDewey == "" && book.DeweyGuess == "")
 		needLoCGuess := (book.LCClassification == "" && foundLoC == "" && book.LCGuess == "")
 		if (needDeweyGuess || needLoCGuess) && geminiKey != "" {
+			fmt.Printf("        Asking Gemini to guess...\n")
 			time.Sleep(1 * time.Second)
 			gd, gl := guessWithGemini(geminiKey, book.Title, book.Author, book.Genre, book.Publisher)
 			if needDeweyGuess && gd != "" {
