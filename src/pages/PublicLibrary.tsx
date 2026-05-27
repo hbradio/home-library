@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
+import { getCoverColor } from '../lib/coverColors'
 
 interface Book {
   id: string
@@ -203,6 +204,7 @@ export default function PublicLibrary() {
                     const isManual = book.isbn?.startsWith('MANUAL-')
                     const isFlipped = flippedCovers.has(book.id)
                     const hasValidCover = validCovers.has(book.id)
+                    const coverColor = getCoverColor(book.id)
                     const showPlaceholder = (target: HTMLImageElement) => {
                       target.style.display = 'none'
                       const placeholder = target.nextElementSibling as HTMLElement
@@ -225,10 +227,10 @@ export default function PublicLibrary() {
                         onClick={toggleFlip}
                       >
                         {isManual ? (
-                          <div className="cover-placeholder">
-                            <span className="cover-placeholder-title">{book.title}</span>
-                            {book.author && <span className="cover-placeholder-author">{book.author}</span>}
-                            {book.publish_year && <span className="cover-placeholder-year">{book.publish_year}</span>}
+                          <div className="cover-placeholder" style={{ background: coverColor.bg }}>
+                            <span className="cover-placeholder-title" style={{ color: coverColor.title }}>{book.title}</span>
+                            {book.author && <span className="cover-placeholder-author" style={{ color: coverColor.subtitle }}>{book.author}</span>}
+                            {book.publish_year && <span className="cover-placeholder-year" style={{ color: coverColor.subtitle }}>{book.publish_year}</span>}
                           </div>
                         ) : (
                           <>
@@ -252,10 +254,10 @@ export default function PublicLibrary() {
                               }}
                               onError={(e) => showPlaceholder(e.target as HTMLImageElement)}
                             />
-                            <div className="cover-placeholder" style={{ display: isFlipped ? 'flex' : 'none' }}>
-                              <span className="cover-placeholder-title">{book.title}</span>
-                              {book.author && <span className="cover-placeholder-author">{book.author}</span>}
-                              {book.publish_year && <span className="cover-placeholder-year">{book.publish_year}</span>}
+                            <div className="cover-placeholder" style={{ display: isFlipped ? 'flex' : 'none', background: coverColor.bg }}>
+                              <span className="cover-placeholder-title" style={{ color: coverColor.title }}>{book.title}</span>
+                              {book.author && <span className="cover-placeholder-author" style={{ color: coverColor.subtitle }}>{book.author}</span>}
+                              {book.publish_year && <span className="cover-placeholder-year" style={{ color: coverColor.subtitle }}>{book.publish_year}</span>}
                             </div>
                           </>
                         )}

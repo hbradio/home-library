@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApi } from '../lib/api'
+import { getCoverColor } from '../lib/coverColors'
 import BookCard from '../components/BookCard'
 
 interface Book {
@@ -196,6 +197,7 @@ export default function Browse() {
                 <div className="cover-grid">
                   {groupedBooks.map((book) => {
                     const isManual = book.isbn?.startsWith('MANUAL-')
+                    const coverColor = getCoverColor(book.id)
                     const showPlaceholder = (target: HTMLImageElement) => {
                       target.style.display = 'none'
                       const placeholder = target.nextElementSibling as HTMLElement
@@ -204,10 +206,10 @@ export default function Browse() {
                     return (
                       <div key={book.id} className="cover-grid-item" onClick={() => navigate(`/book/${book.id}`)}>
                         {isManual ? (
-                          <div className="cover-placeholder">
-                            <span className="cover-placeholder-title">{book.title}</span>
-                            {book.author && <span className="cover-placeholder-author">{book.author}</span>}
-                            {book.publish_year && <span className="cover-placeholder-year">{book.publish_year}</span>}
+                          <div className="cover-placeholder" style={{ background: coverColor.bg }}>
+                            <span className="cover-placeholder-title" style={{ color: coverColor.title }}>{book.title}</span>
+                            {book.author && <span className="cover-placeholder-author" style={{ color: coverColor.subtitle }}>{book.author}</span>}
+                            {book.publish_year && <span className="cover-placeholder-year" style={{ color: coverColor.subtitle }}>{book.publish_year}</span>}
                           </div>
                         ) : (
                           <>
@@ -223,10 +225,10 @@ export default function Browse() {
                               }}
                               onError={(e) => showPlaceholder(e.target as HTMLImageElement)}
                             />
-                            <div className="cover-placeholder" style={{ display: 'none' }}>
-                              <span className="cover-placeholder-title">{book.title}</span>
-                              {book.author && <span className="cover-placeholder-author">{book.author}</span>}
-                              {book.publish_year && <span className="cover-placeholder-year">{book.publish_year}</span>}
+                            <div className="cover-placeholder" style={{ display: 'none', background: coverColor.bg }}>
+                              <span className="cover-placeholder-title" style={{ color: coverColor.title }}>{book.title}</span>
+                              {book.author && <span className="cover-placeholder-author" style={{ color: coverColor.subtitle }}>{book.author}</span>}
+                              {book.publish_year && <span className="cover-placeholder-year" style={{ color: coverColor.subtitle }}>{book.publish_year}</span>}
                             </div>
                           </>
                         )}
