@@ -4,12 +4,14 @@ import { getCoverColor } from '../lib/coverColors'
 // Module-level caches shared across all BookCover instances.
 const googleBooksCache: Record<string, string> = {}
 const olCoverIdCache: Record<string, string> = {}
+const googleBooksApiKey = import.meta.env.VITE_GOOGLE_BOOKS_API_KEY || ''
 
 async function fetchGoogleBooksCover(isbn: string): Promise<string> {
   if (isbn in googleBooksCache) return googleBooksCache[isbn]
   try {
+    const keyParam = googleBooksApiKey ? `&key=${googleBooksApiKey}` : ''
     const resp = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&fields=items(volumeInfo/imageLinks)`
+      `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&fields=items(volumeInfo/imageLinks)${keyParam}`
     )
     if (!resp.ok) {
       googleBooksCache[isbn] = ''
