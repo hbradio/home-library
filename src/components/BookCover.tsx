@@ -36,16 +36,18 @@ interface BookCoverProps {
   author?: string
   publishYear?: number | null
   alt: string
+  /** User-provided cover URL override */
+  coverUrl?: string
   /** 'M' for medium (grid), 'L' for large (detail page) */
   size?: 'M' | 'L'
   /** Additional className for the <img> element */
   className?: string
   loading?: 'lazy' | 'eager'
-  /** Called when a valid cover image loads successfully (from either source) */
+  /** Called when a valid cover image loads successfully (from any source) */
   onValidCover?: () => void
 }
 
-type CoverState = 'open-library' | 'google-books' | 'placeholder'
+type CoverState = 'cover-override' | 'open-library' | 'google-books' | 'placeholder'
 
 export default function BookCover({
   isbn,
@@ -54,12 +56,13 @@ export default function BookCover({
   author,
   publishYear,
   alt,
+  coverUrl,
   size = 'M',
   className,
   loading = 'lazy',
   onValidCover,
 }: BookCoverProps) {
-  const [state, setState] = useState<CoverState>('open-library')
+  const [state, setState] = useState<CoverState>(coverUrl ? 'cover-override' : 'open-library')
   const [googleUrl, setGoogleUrl] = useState<string | null>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const coverColor = getCoverColor(bookId)
@@ -104,6 +107,27 @@ export default function BookCover({
         {author && <span className="cover-placeholder-author" style={{ color: coverColor.subtitle }}>{author}</span>}
         {publishYear && <span className="cover-placeholder-year" style={{ color: coverColor.subtitle }}>{publishYear}</span>}
       </div>
+    )
+  }
+
+  if (state === 'cover-override') {
+    return (
+      <img
+        ref={imgRef}
+        className={className}
+        src={coverUrl}
+        alt={alt}
+        loading={loading}
+        onLoad={(e) => {
+          const target = e.target as HTMLImageElement
+          if (target.naturalWidth < 20 || target.naturalHeight < 20) {
+            setState('open-library')
+          } else {
+            onValidCover?.()
+          }
+        }}
+        onError={() => setState('open-library')}
+      />
     )
   }
 

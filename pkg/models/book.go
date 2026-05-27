@@ -18,6 +18,7 @@ type Book struct {
 	LCClassification string    `json:"lc_classification"`
 	DeweyGuess       string    `json:"dewey_guess"`
 	LCGuess          string    `json:"lc_guess"`
+	CoverURL         string    `json:"cover_url"`
 	PublishYear      *int      `json:"publish_year"`
 	CreatedAt        time.Time `json:"created_at"`
 	LoanStatus       string    `json:"loan_status"`
@@ -33,9 +34,9 @@ func CreateBook(db *sql.DB, userID, isbn, title, author, genre, publisher, dewey
 	err := db.QueryRow(
 		`INSERT INTO books (user_id, isbn, title, author, genre, publisher, dewey_decimal, lc_classification, publish_year)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		 RETURNING id, user_id, isbn, title, author, genre, publisher, dewey_decimal, lc_classification, COALESCE(dewey_guess, ''), COALESCE(lc_guess, ''), publish_year, created_at`,
+		 RETURNING id, user_id, isbn, title, author, genre, publisher, dewey_decimal, lc_classification, COALESCE(dewey_guess, ''), COALESCE(lc_guess, ''), COALESCE(cover_url, ''), publish_year, created_at`,
 		userID, isbn, title, author, genre, publisher, deweyDecimal, lcClassification, py,
-	).Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.Publisher, &b.DeweyDecimal, &b.LCClassification, &b.DeweyGuess, &b.LCGuess, &b.PublishYear, &b.CreatedAt)
+	).Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.Publisher, &b.DeweyDecimal, &b.LCClassification, &b.DeweyGuess, &b.LCGuess, &b.CoverURL, &b.PublishYear, &b.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +45,7 @@ func CreateBook(db *sql.DB, userID, isbn, title, author, genre, publisher, dewey
 }
 
 func GetBooks(db *sql.DB, userID, title, author, genre string) ([]Book, error) {
-	query := `SELECT b.id, b.user_id, b.isbn, b.title, b.author, b.genre, COALESCE(b.publisher, ''), COALESCE(b.dewey_decimal, ''), COALESCE(b.lc_classification, ''), COALESCE(b.dewey_guess, ''), COALESCE(b.lc_guess, ''), b.publish_year, b.created_at,
+	query := `SELECT b.id, b.user_id, b.isbn, b.title, b.author, b.genre, COALESCE(b.publisher, ''), COALESCE(b.dewey_decimal, ''), COALESCE(b.lc_classification, ''), COALESCE(b.dewey_guess, ''), COALESCE(b.lc_guess, ''), COALESCE(b.cover_url, ''), b.publish_year, b.created_at,
 		COALESCE(
 			(SELECT le.event_type FROM loan_events le WHERE le.book_id = b.id ORDER BY le.created_at DESC LIMIT 1),
 			'available'
@@ -83,7 +84,7 @@ func GetBooks(db *sql.DB, userID, title, author, genre string) ([]Book, error) {
 	for rows.Next() {
 		var b Book
 		var patronName sql.NullString
-		err := rows.Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.Publisher, &b.DeweyDecimal, &b.LCClassification, &b.DeweyGuess, &b.LCGuess, &b.PublishYear, &b.CreatedAt, &b.LoanStatus, &patronName)
+		err := rows.Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.Publisher, &b.DeweyDecimal, &b.LCClassification, &b.DeweyGuess, &b.LCGuess, &b.CoverURL, &b.PublishYear, &b.CreatedAt, &b.LoanStatus, &patronName)
 		if err != nil {
 			return nil, err
 		}
@@ -104,7 +105,7 @@ func GetBookByID(db *sql.DB, bookID, userID string) (*Book, error) {
 	var b Book
 	var patronName sql.NullString
 	err := db.QueryRow(
-		`SELECT b.id, b.user_id, b.isbn, b.title, b.author, b.genre, COALESCE(b.publisher, ''), COALESCE(b.dewey_decimal, ''), COALESCE(b.lc_classification, ''), COALESCE(b.dewey_guess, ''), COALESCE(b.lc_guess, ''), b.publish_year, b.created_at,
+		`SELECT b.id, b.user_id, b.isbn, b.title, b.author, b.genre, COALESCE(b.publisher, ''), COALESCE(b.dewey_decimal, ''), COALESCE(b.lc_classification, ''), COALESCE(b.dewey_guess, ''), COALESCE(b.lc_guess, ''), COALESCE(b.cover_url, ''), b.publish_year, b.created_at,
 		COALESCE(
 			(SELECT le.event_type FROM loan_events le WHERE le.book_id = b.id ORDER BY le.created_at DESC LIMIT 1),
 			'available'
@@ -114,7 +115,7 @@ func GetBookByID(db *sql.DB, bookID, userID string) (*Book, error) {
 		 WHERE le.book_id = b.id ORDER BY le.created_at DESC LIMIT 1) as patron_name
 		FROM books b WHERE b.id = $1 AND b.user_id = $2`,
 		bookID, userID,
-	).Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.Publisher, &b.DeweyDecimal, &b.LCClassification, &b.DeweyGuess, &b.LCGuess, &b.PublishYear, &b.CreatedAt, &b.LoanStatus, &patronName)
+	).Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.Publisher, &b.DeweyDecimal, &b.LCClassification, &b.DeweyGuess, &b.LCGuess, &b.CoverURL, &b.PublishYear, &b.CreatedAt, &b.LoanStatus, &patronName)
 	if err != nil {
 		return nil, err
 	}
@@ -133,7 +134,7 @@ func GetBookByISBN(db *sql.DB, isbn, userID string) (*Book, error) {
 	var b Book
 	var patronName sql.NullString
 	err := db.QueryRow(
-		`SELECT b.id, b.user_id, b.isbn, b.title, b.author, b.genre, COALESCE(b.publisher, ''), COALESCE(b.dewey_decimal, ''), COALESCE(b.lc_classification, ''), COALESCE(b.dewey_guess, ''), COALESCE(b.lc_guess, ''), b.publish_year, b.created_at,
+		`SELECT b.id, b.user_id, b.isbn, b.title, b.author, b.genre, COALESCE(b.publisher, ''), COALESCE(b.dewey_decimal, ''), COALESCE(b.lc_classification, ''), COALESCE(b.dewey_guess, ''), COALESCE(b.lc_guess, ''), COALESCE(b.cover_url, ''), b.publish_year, b.created_at,
 		COALESCE(
 			(SELECT le.event_type FROM loan_events le WHERE le.book_id = b.id ORDER BY le.created_at DESC LIMIT 1),
 			'available'
@@ -143,7 +144,7 @@ func GetBookByISBN(db *sql.DB, isbn, userID string) (*Book, error) {
 		 WHERE le.book_id = b.id ORDER BY le.created_at DESC LIMIT 1) as patron_name
 		FROM books b WHERE b.isbn = $1 AND b.user_id = $2`,
 		isbn, userID,
-	).Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.Publisher, &b.DeweyDecimal, &b.LCClassification, &b.DeweyGuess, &b.LCGuess, &b.PublishYear, &b.CreatedAt, &b.LoanStatus, &patronName)
+	).Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.Publisher, &b.DeweyDecimal, &b.LCClassification, &b.DeweyGuess, &b.LCGuess, &b.CoverURL, &b.PublishYear, &b.CreatedAt, &b.LoanStatus, &patronName)
 	if err != nil {
 		return nil, err
 	}
@@ -158,18 +159,18 @@ func GetBookByISBN(db *sql.DB, isbn, userID string) (*Book, error) {
 	return &b, nil
 }
 
-func UpdateBook(db *sql.DB, bookID, userID, title, author, genre, publisher, deweyDecimal, lcClassification, deweyGuess, lcGuess string, publishYear *int) (*Book, error) {
+func UpdateBook(db *sql.DB, bookID, userID, title, author, genre, publisher, deweyDecimal, lcClassification, deweyGuess, lcGuess, coverURL string, publishYear *int) (*Book, error) {
 	var b Book
 	var py sql.NullInt64
 	if publishYear != nil {
 		py = sql.NullInt64{Int64: int64(*publishYear), Valid: true}
 	}
 	err := db.QueryRow(
-		`UPDATE books SET title=$3, author=$4, genre=$5, publisher=$6, dewey_decimal=$7, lc_classification=$8, dewey_guess=$9, lc_guess=$10, publish_year=$11
+		`UPDATE books SET title=$3, author=$4, genre=$5, publisher=$6, dewey_decimal=$7, lc_classification=$8, dewey_guess=$9, lc_guess=$10, cover_url=$11, publish_year=$12
 		 WHERE id=$1 AND user_id=$2
-		 RETURNING id, user_id, isbn, title, author, genre, publisher, dewey_decimal, lc_classification, COALESCE(dewey_guess, ''), COALESCE(lc_guess, ''), publish_year, created_at`,
-		bookID, userID, title, author, genre, publisher, deweyDecimal, lcClassification, deweyGuess, lcGuess, py,
-	).Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.Publisher, &b.DeweyDecimal, &b.LCClassification, &b.DeweyGuess, &b.LCGuess, &b.PublishYear, &b.CreatedAt)
+		 RETURNING id, user_id, isbn, title, author, genre, publisher, dewey_decimal, lc_classification, COALESCE(dewey_guess, ''), COALESCE(lc_guess, ''), COALESCE(cover_url, ''), publish_year, created_at`,
+		bookID, userID, title, author, genre, publisher, deweyDecimal, lcClassification, deweyGuess, lcGuess, coverURL, py,
+	).Scan(&b.ID, &b.UserID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.Publisher, &b.DeweyDecimal, &b.LCClassification, &b.DeweyGuess, &b.LCGuess, &b.CoverURL, &b.PublishYear, &b.CreatedAt)
 	if err != nil {
 		return nil, err
 	}

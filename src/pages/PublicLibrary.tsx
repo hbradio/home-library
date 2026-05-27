@@ -14,6 +14,7 @@ interface Book {
   lc_classification: string
   dewey_guess: string
   lc_guess: string
+  cover_url: string
   publish_year: number | null
   loan_status: string
   patron_name?: string
@@ -239,6 +240,7 @@ export default function PublicLibrary() {
                             author={book.author}
                             publishYear={book.publish_year}
                             alt={book.title}
+                            coverUrl={book.cover_url || undefined}
                             size="M"
                             loading="lazy"
                             onValidCover={() => {

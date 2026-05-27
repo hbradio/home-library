@@ -74,6 +74,7 @@ func migrate(db *sql.DB) error {
 		`ALTER TABLE books ADD COLUMN IF NOT EXISTS lc_classification TEXT`,
 		`ALTER TABLE books ADD COLUMN IF NOT EXISTS dewey_guess TEXT`,
 		`ALTER TABLE books ADD COLUMN IF NOT EXISTS lc_guess TEXT`,
+		`ALTER TABLE books ADD COLUMN IF NOT EXISTS cover_url TEXT`,
 		`CREATE INDEX IF NOT EXISTS idx_books_user_id ON books(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_patrons_user_id ON patrons(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_loan_events_book_id ON loan_events(book_id)`,

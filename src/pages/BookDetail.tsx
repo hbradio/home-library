@@ -14,6 +14,7 @@ interface Book {
   lc_classification: string
   dewey_guess: string
   lc_guess: string
+  cover_url: string
   publish_year: number | null
   loan_status: string
   patron_name?: string
@@ -35,6 +36,7 @@ interface EditFields {
   lc_classification: string
   dewey_guess: string
   lc_guess: string
+  cover_url: string
   publish_year: string
 }
 
@@ -46,7 +48,7 @@ export default function BookDetail() {
   const [history, setHistory] = useState<LoanEvent[]>([])
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [edit, setEdit] = useState<EditFields>({ title: '', author: '', genre: '', publisher: '', dewey_decimal: '', lc_classification: '', dewey_guess: '', lc_guess: '', publish_year: '' })
+  const [edit, setEdit] = useState<EditFields>({ title: '', author: '', genre: '', publisher: '', dewey_decimal: '', lc_classification: '', dewey_guess: '', lc_guess: '', cover_url: '', publish_year: '' })
 
   const startEdit = () => {
     if (!book) return
@@ -59,6 +61,7 @@ export default function BookDetail() {
       lc_classification: book.lc_classification,
       dewey_guess: book.dewey_guess,
       lc_guess: book.lc_guess,
+      cover_url: book.cover_url,
       publish_year: book.publish_year?.toString() || '',
     })
     setEditing(true)
@@ -77,6 +80,7 @@ export default function BookDetail() {
         lc_classification: edit.lc_classification,
         dewey_guess: edit.dewey_guess,
         lc_guess: edit.lc_guess,
+        cover_url: edit.cover_url,
         publish_year: isNaN(year as number) ? null : year,
       }),
     })
@@ -128,6 +132,7 @@ export default function BookDetail() {
             author={book.author}
             publishYear={book.publish_year}
             alt={`Cover of ${book.title}`}
+            coverUrl={book.cover_url || undefined}
             size="L"
             className="cover"
             loading="eager"
@@ -158,6 +163,8 @@ export default function BookDetail() {
               <input value={edit.dewey_guess} onChange={(e) => setEdit({ ...edit, dewey_guess: e.target.value })} />
               <label>LoC (Est.):</label>
               <input value={edit.lc_guess} onChange={(e) => setEdit({ ...edit, lc_guess: e.target.value })} />
+              <label>Cover URL:</label>
+              <input value={edit.cover_url} onChange={(e) => setEdit({ ...edit, cover_url: e.target.value })} placeholder="https://..." />
               <div style={{ gridColumn: '1 / -1', marginTop: '0.5em', display: 'flex', gap: '0.5em' }}>
                 <button onClick={saveEdit}>Save</button>
                 <button onClick={() => setEditing(false)}>Cancel</button>
