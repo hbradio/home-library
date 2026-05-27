@@ -3,10 +3,12 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"encoding/xml"
 	"flag"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -20,6 +22,7 @@ type bookRow struct {
 	ID               string
 	ISBN             string
 	Title            string
+	Author           string
 	DeweyDecimal     string
 	LCClassification string
 	Email            string
@@ -54,7 +57,7 @@ func main() {
 
 	if len(books) == 0 {
 		fmt.Println("No books with missing classifications found.")
-		printUserStats(database)
+		printUserStats(database, 0, 0, 0)
 		return
 	}
 
@@ -88,30 +91,64 @@ func main() {
 			needLoC = false
 		}
 
-		// API 2: Open Library Search API (if still missing)
+		// API 2: Open Library Search by ISBN (if still missing)
 		if needDewey || needLoC {
-			time.Sleep(1 * time.Second) // rate limit
-			d, l = lookupSearch(book.ISBN)
+			time.Sleep(1 * time.Second)
+			d, l = lookupSearchByISBN(book.ISBN)
 			if needDewey && d != "" {
 				foundDewey = d
-				deweySource = "Open Library search"
+				deweySource = "Open Library search (ISBN)"
+				needDewey = false
 			}
 			if needLoC && l != "" {
 				foundLoC = l
-				locSource = "Open Library search"
+				locSource = "Open Library search (ISBN)"
+				needLoC = false
+			}
+		}
+
+		// API 3: Open Library Search by title+author (if still missing)
+		if (needDewey || needLoC) && book.Title != "" && book.Author != "" {
+			time.Sleep(1 * time.Second)
+			d, l = lookupSearchByTitleAuthor(book.Title, book.Author)
+			if needDewey && d != "" {
+				foundDewey = d
+				deweySource = "Open Library search (title+author)"
+				needDewey = false
+			}
+			if needLoC && l != "" {
+				foundLoC = l
+				locSource = "Open Library search (title+author)"
+				needLoC = false
+			}
+		}
+
+		// API 4: German National Library (DNB) SRU API (if still missing)
+		if needDewey || needLoC {
+			time.Sleep(1 * time.Second)
+			d, l = lookupDNB(book.ISBN)
+			if needDewey && d != "" {
+				foundDewey = d
+				deweySource = "DNB (German National Library)"
+				needDewey = false
+			}
+			if needLoC && l != "" {
+				foundLoC = l
+				locSource = "DNB (German National Library)"
+				needLoC = false
 			}
 		}
 
 		// Print results
 		if foundDewey != "" {
-			fmt.Printf("        Dewey: %s (from %s)\n", foundDewey, deweySource)
+			fmt.Printf("     \U0001F4D7 Dewey: %s (from %s)\n", foundDewey, deweySource)
 		} else if book.DeweyDecimal != "" {
 			fmt.Printf("        Dewey: %s (already set)\n", book.DeweyDecimal)
 		} else {
 			fmt.Printf("        Dewey: (not found)\n")
 		}
 		if foundLoC != "" {
-			fmt.Printf("        LoC:   %s (from %s)\n", foundLoC, locSource)
+			fmt.Printf("     \U0001F4D7 LoC:   %s (from %s)\n", foundLoC, locSource)
 		} else if book.LCClassification != "" {
 			fmt.Printf("        LoC:   %s (already set)\n", book.LCClassification)
 		} else {
@@ -151,12 +188,12 @@ func main() {
 	fmt.Printf("  Still missing: %d\n", len(books)-updated)
 	fmt.Println()
 
-	printUserStats(database)
+	printUserStats(database, len(books), deweyFilled, locFilled)
 }
 
 func queryMissingBooks(database *sql.DB) ([]bookRow, error) {
 	rows, err := database.Query(`
-		SELECT b.id, b.isbn, b.title,
+		SELECT b.id, b.isbn, b.title, COALESCE(b.author, ''),
 			   COALESCE(b.dewey_decimal, ''), COALESCE(b.lc_classification, ''),
 			   COALESCE(u.email, '')
 		FROM books b
@@ -174,7 +211,7 @@ func queryMissingBooks(database *sql.DB) ([]bookRow, error) {
 	var books []bookRow
 	for rows.Next() {
 		var b bookRow
-		if err := rows.Scan(&b.ID, &b.ISBN, &b.Title, &b.DeweyDecimal, &b.LCClassification, &b.Email); err != nil {
+		if err := rows.Scan(&b.ID, &b.ISBN, &b.Title, &b.Author, &b.DeweyDecimal, &b.LCClassification, &b.Email); err != nil {
 			return nil, err
 		}
 		books = append(books, b)
@@ -232,10 +269,22 @@ func lookupEdition(isbn string) (dewey, loc string) {
 	return dewey, loc
 }
 
-// lookupSearch fetches Dewey and LoC from Open Library's Search API,
+// lookupSearchByISBN fetches Dewey and LoC from Open Library's Search API by ISBN,
 // which aggregates classification data across all editions of a work.
-func lookupSearch(isbn string) (dewey, loc string) {
-	resp, err := http.Get(fmt.Sprintf("https://openlibrary.org/search.json?isbn=%s&fields=lcc,ddc&limit=1", isbn))
+func lookupSearchByISBN(isbn string) (dewey, loc string) {
+	return lookupOLSearch(fmt.Sprintf("https://openlibrary.org/search.json?isbn=%s&fields=lcc,ddc&limit=1", isbn))
+}
+
+// lookupSearchByTitleAuthor fetches Dewey and LoC from Open Library's Search API
+// by title+author, finding classification data from sibling editions of the same work.
+func lookupSearchByTitleAuthor(title, author string) (dewey, loc string) {
+	q := fmt.Sprintf("https://openlibrary.org/search.json?title=%s&author=%s&fields=lcc,ddc&limit=3",
+		url.QueryEscape(title), url.QueryEscape(author))
+	return lookupOLSearch(q)
+}
+
+func lookupOLSearch(searchURL string) (dewey, loc string) {
+	resp, err := http.Get(searchURL)
 	if err != nil || resp.StatusCode != 200 {
 		if resp != nil {
 			resp.Body.Close()
@@ -259,20 +308,23 @@ func lookupSearch(isbn string) (dewey, loc string) {
 		return "", ""
 	}
 
-	if len(result.Docs) > 0 {
-		doc := result.Docs[0]
-		if len(doc.DDC) > 0 {
+	// Search across all returned docs for the first available values
+	for _, doc := range result.Docs {
+		if dewey == "" && len(doc.DDC) > 0 {
 			dewey = cleanSearchClassification(doc.DDC[0])
 		}
-		if len(doc.LCC) > 0 {
+		if loc == "" && len(doc.LCC) > 0 {
 			loc = cleanSearchClassification(doc.LCC[0])
+		}
+		if dewey != "" && loc != "" {
+			break
 		}
 	}
 	return dewey, loc
 }
 
 // cleanSearchClassification converts the padded format from the Search API
-// (e.g. "PG-3326.00000000.P7 2003") back to a standard form (e.g. "PG3326 .P7 2003").
+// (e.g. "PG-3326.00000000.P7 2003") back to a standard form (e.g. "PG3326.P7 2003").
 func cleanSearchClassification(raw string) string {
 	// Remove ".00000000" padding
 	cleaned := strings.ReplaceAll(raw, ".00000000", "")
@@ -285,7 +337,133 @@ func cleanSearchClassification(raw string) string {
 	return strings.TrimSpace(cleaned)
 }
 
-func printUserStats(database *sql.DB) {
+// --- DNB (German National Library) SRU API ---
+
+// MARC21 XML structures for parsing DNB responses
+type sruResponse struct {
+	XMLName xml.Name  `xml:"searchRetrieveResponse"`
+	Records []sruRecord `xml:"records>record"`
+}
+
+type sruRecord struct {
+	RecordData sruRecordData `xml:"recordData"`
+}
+
+type sruRecordData struct {
+	Record marcRecord `xml:"record"`
+}
+
+type marcRecord struct {
+	DataFields []marcDataField `xml:"datafield"`
+}
+
+type marcDataField struct {
+	Tag       string          `xml:"tag,attr"`
+	SubFields []marcSubField  `xml:"subfield"`
+}
+
+type marcSubField struct {
+	Code  string `xml:"code,attr"`
+	Value string `xml:",chardata"`
+}
+
+// lookupDNB fetches classification data from the German National Library's SRU API.
+// It checks MARC tag 082 for Dewey and tag 050 for LoC classification.
+// If those are missing, it falls back to tag 084 with indicator "sdnb"
+// (Sachgruppen der DNB), which maps to broad Dewey classes.
+func lookupDNB(isbn string) (dewey, loc string) {
+	dnbURL := fmt.Sprintf(
+		"https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=isbn%%3D%s&maximumRecords=1&recordSchema=MARC21-xml",
+		isbn,
+	)
+	resp, err := http.Get(dnbURL)
+	if err != nil || resp.StatusCode != 200 {
+		if resp != nil {
+			resp.Body.Close()
+		}
+		return "", ""
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", ""
+	}
+
+	var sru sruResponse
+	if err := xml.Unmarshal(body, &sru); err != nil {
+		return "", ""
+	}
+
+	if len(sru.Records) == 0 {
+		return "", ""
+	}
+
+	record := sru.Records[0].RecordData.Record
+	sdnbDewey := ""
+
+	for _, df := range record.DataFields {
+		switch df.Tag {
+		case "082": // Standard Dewey Decimal
+			if dewey == "" {
+				for _, sf := range df.SubFields {
+					if sf.Code == "a" && sf.Value != "" {
+						dewey = sf.Value
+						break
+					}
+				}
+			}
+		case "050": // Library of Congress Classification
+			if loc == "" {
+				for _, sf := range df.SubFields {
+					if sf.Code == "a" && sf.Value != "" {
+						loc = sf.Value
+						break
+					}
+				}
+			}
+		case "084": // Other classification (check for sdnb)
+			if sdnbDewey == "" {
+				isSdnb := false
+				firstValue := ""
+				for _, sf := range df.SubFields {
+					if sf.Code == "2" && sf.Value == "sdnb" {
+						isSdnb = true
+					}
+					if sf.Code == "a" && firstValue == "" {
+						firstValue = sf.Value
+					}
+				}
+				if isSdnb && firstValue != "" {
+					sdnbDewey = firstValue
+				}
+			}
+		}
+	}
+
+	// Fall back to sdnb code if no standard Dewey was found
+	if dewey == "" && sdnbDewey != "" {
+		dewey = sdnbDewey
+	}
+
+	return dewey, loc
+}
+
+func printUserStats(database *sql.DB, processed, newDewey, newLoC int) {
+	// Print new-fills summary if we processed anything
+	if processed > 0 {
+		fmt.Println("New values added this run:")
+		deweyPct := 0
+		locPct := 0
+		if processed > 0 {
+			deweyPct = newDewey * 100 / processed
+			locPct = newLoC * 100 / processed
+		}
+		fmt.Printf("  Dewey: %d/%d processed (%d%%)\n", newDewey, processed, deweyPct)
+		fmt.Printf("  LoC:   %d/%d processed (%d%%)\n", newLoC, processed, locPct)
+		fmt.Println()
+	}
+
 	rows, err := database.Query(`
 		SELECT COALESCE(u.email, '(no email)'),
 			   COUNT(*) AS total,
@@ -303,7 +481,7 @@ func printUserStats(database *sql.DB) {
 	}
 	defer rows.Close()
 
-	fmt.Println("Per-user classification stats:")
+	fmt.Println("Per-user classification stats (overall library):")
 	fmt.Println()
 	for rows.Next() {
 		var email string
