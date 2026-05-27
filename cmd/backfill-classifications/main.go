@@ -529,7 +529,7 @@ Publisher: %s`, title, author, genre, publisher)
 		},
 		"generationConfig": map[string]interface{}{
 			"temperature":     0.1,
-			"maxOutputTokens": 100,
+			"maxOutputTokens": 1024,
 		},
 	}
 
@@ -538,7 +538,7 @@ Publisher: %s`, title, author, genre, publisher)
 		return "", ""
 	}
 
-	geminiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=%s", apiKey)
+	geminiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=%s", apiKey)
 
 	var body []byte
 	for attempt := 0; attempt < 3; attempt++ {
