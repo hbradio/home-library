@@ -201,7 +201,7 @@ export default function Browse() {
               : (
                 <div className="cover-grid">
                   {groupedBooks.map((book) => (
-                    <div key={book.id} className="cover-grid-item" onClick={() => navigate(`/book/${book.id}`)}>
+                    <div key={book.id} className="cover-grid-item" title={book.isbn} onClick={() => navigate(`/book/${book.id}`)}>
                       <BookCover
                         isbn={book.isbn}
                         bookId={book.id}

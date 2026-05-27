@@ -223,6 +223,7 @@ export default function PublicLibrary() {
                       <div
                         key={book.id}
                         className={`cover-grid-item${hasValidCover ? ' flippable' : ''}`}
+                        title={book.isbn}
                         style={hasValidCover ? undefined : { cursor: 'default' }}
                         onClick={toggleFlip}
                       >

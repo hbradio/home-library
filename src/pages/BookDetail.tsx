@@ -132,6 +132,7 @@ export default function BookDetail() {
             author={book.author}
             publishYear={book.publish_year}
             alt={`Cover of ${book.title}`}
+            tooltip={book.isbn}
             coverUrl={book.cover_url || undefined}
             size="L"
             className="cover"

@@ -65,6 +65,8 @@ interface BookCoverProps {
   coverUrl?: string
   /** 'M' for medium (grid), 'L' for large (detail page) */
   size?: 'M' | 'L'
+  /** Tooltip text shown on hover */
+  tooltip?: string
   /** Additional className for the <img> element */
   className?: string
   loading?: 'lazy' | 'eager'
@@ -82,6 +84,7 @@ export default function BookCover({
   publishYear,
   alt,
   coverUrl,
+  tooltip,
   size = 'M',
   className,
   loading = 'lazy',
@@ -135,7 +138,7 @@ export default function BookCover({
 
   if (state === 'placeholder') {
     return (
-      <div className="cover-placeholder" style={{ background: coverColor.bg }}>
+      <div className="cover-placeholder" title={tooltip} style={{ background: coverColor.bg }}>
         <span className="cover-placeholder-title" style={{ color: coverColor.title }}>{title}</span>
         {author && <span className="cover-placeholder-author" style={{ color: coverColor.subtitle }}>{author}</span>}
         {publishYear && <span className="cover-placeholder-year" style={{ color: coverColor.subtitle }}>{publishYear}</span>}
@@ -150,6 +153,7 @@ export default function BookCover({
         className={className}
         src={coverUrl}
         alt={alt}
+        title={tooltip}
         loading={loading}
         onLoad={(e) => handleImageResult(true, e.target as HTMLImageElement, 'open-library')}
         onError={() => setState('open-library')}
@@ -165,6 +169,7 @@ export default function BookCover({
         className={className}
         src={olCoverIdUrl}
         alt={alt}
+        title={tooltip}
         loading={loading}
         onLoad={(e) => handleImageResult(true, e.target as HTMLImageElement, 'google-books')}
         onError={() => setState('google-books')}
@@ -180,6 +185,7 @@ export default function BookCover({
         className={className}
         src={googleUrl}
         alt={alt}
+        title={tooltip}
         loading={loading}
         onLoad={(e) => handleImageResult(true, e.target as HTMLImageElement, 'placeholder')}
         onError={() => setState('placeholder')}
@@ -194,6 +200,7 @@ export default function BookCover({
       className={className}
       src={openLibraryUrl}
       alt={alt}
+      title={tooltip}
       loading={loading}
       onLoad={(e) => handleImageResult(true, e.target as HTMLImageElement, 'ol-cover-id')}
       onError={() => setState('ol-cover-id')}
