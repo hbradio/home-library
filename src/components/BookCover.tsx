@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { getCoverColor } from '../lib/coverColors'
 
-// Module-level cache shared across all BookCover instances.
-// Maps ISBN -> Google Books thumbnail URL (or '' if none found).
+// Module-level caches shared across all BookCover instances.
 const googleBooksCache: Record<string, string> = {}
+const olCoverIdCache: Record<string, string> = {}
 
 async function fetchGoogleBooksCover(isbn: string): Promise<string> {
   if (isbn in googleBooksCache) return googleBooksCache[isbn]
@@ -17,14 +17,39 @@ async function fetchGoogleBooksCover(isbn: string): Promise<string> {
     }
     const data = await resp.json()
     const imageLinks = data?.items?.[0]?.volumeInfo?.imageLinks
-    // Prefer thumbnail, fall back to smallThumbnail
     const url = imageLinks?.thumbnail || imageLinks?.smallThumbnail || ''
-    // Google returns http URLs; upgrade to https
     const secureUrl = url.replace(/^http:/, 'https:')
     googleBooksCache[isbn] = secureUrl
     return secureUrl
   } catch {
     googleBooksCache[isbn] = ''
+    return ''
+  }
+}
+
+async function fetchOLCoverByID(isbn: string, size: string): Promise<string> {
+  if (isbn in olCoverIdCache) {
+    const cached = olCoverIdCache[isbn]
+    return cached ? `https://covers.openlibrary.org/b/id/${cached}-${size}.jpg` : ''
+  }
+  try {
+    const resp = await fetch(
+      `https://openlibrary.org/search.json?isbn=${isbn}&fields=cover_i&limit=1`
+    )
+    if (!resp.ok) {
+      olCoverIdCache[isbn] = ''
+      return ''
+    }
+    const data = await resp.json()
+    const coverId = data?.docs?.[0]?.cover_i
+    if (coverId) {
+      olCoverIdCache[isbn] = String(coverId)
+      return `https://covers.openlibrary.org/b/id/${coverId}-${size}.jpg`
+    }
+    olCoverIdCache[isbn] = ''
+    return ''
+  } catch {
+    olCoverIdCache[isbn] = ''
     return ''
   }
 }
@@ -47,7 +72,7 @@ interface BookCoverProps {
   onValidCover?: () => void
 }
 
-type CoverState = 'cover-override' | 'open-library' | 'google-books' | 'placeholder'
+type CoverState = 'cover-override' | 'open-library' | 'ol-cover-id' | 'google-books' | 'placeholder'
 
 export default function BookCover({
   isbn,
@@ -63,13 +88,29 @@ export default function BookCover({
   onValidCover,
 }: BookCoverProps) {
   const [state, setState] = useState<CoverState>(coverUrl ? 'cover-override' : 'open-library')
+  const [olCoverIdUrl, setOlCoverIdUrl] = useState<string | null>(null)
   const [googleUrl, setGoogleUrl] = useState<string | null>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const coverColor = getCoverColor(bookId)
 
   const openLibraryUrl = `https://covers.openlibrary.org/b/isbn/${isbn}-${size}.jpg`
 
-  // When Open Library fails, try Google Books
+  // When Open Library by ISBN fails, try Open Library by cover ID
+  useEffect(() => {
+    if (state !== 'ol-cover-id') return
+    let cancelled = false
+    fetchOLCoverByID(isbn, size).then((url) => {
+      if (cancelled) return
+      if (url) {
+        setOlCoverIdUrl(url)
+      } else {
+        setState('google-books')
+      }
+    })
+    return () => { cancelled = true }
+  }, [state, isbn, size])
+
+  // When Open Library by cover ID fails, try Google Books
   useEffect(() => {
     if (state !== 'google-books') return
     let cancelled = false
@@ -84,17 +125,9 @@ export default function BookCover({
     return () => { cancelled = true }
   }, [state, isbn])
 
-  const handleOpenLibraryResult = (img: HTMLImageElement, success: boolean) => {
+  const handleImageResult = (success: boolean, img: HTMLImageElement, nextState: CoverState) => {
     if (!success || img.naturalWidth < 20 || img.naturalHeight < 20) {
-      setState('google-books')
-    } else {
-      onValidCover?.()
-    }
-  }
-
-  const handleGoogleBooksResult = (img: HTMLImageElement, success: boolean) => {
-    if (!success || img.naturalWidth < 20 || img.naturalHeight < 20) {
-      setState('placeholder')
+      setState(nextState)
     } else {
       onValidCover?.()
     }
@@ -118,41 +151,43 @@ export default function BookCover({
         src={coverUrl}
         alt={alt}
         loading={loading}
-        onLoad={(e) => {
-          const target = e.target as HTMLImageElement
-          if (target.naturalWidth < 20 || target.naturalHeight < 20) {
-            setState('open-library')
-          } else {
-            onValidCover?.()
-          }
-        }}
+        onLoad={(e) => handleImageResult(true, e.target as HTMLImageElement, 'open-library')}
         onError={() => setState('open-library')}
       />
     )
   }
 
-  if (state === 'google-books') {
-    if (!googleUrl) {
-      // Still loading the Google Books URL -- show nothing yet (brief flash)
-      return null
-    }
+  if (state === 'ol-cover-id') {
+    if (!olCoverIdUrl) return null
     return (
-      <>
-        <img
-          ref={imgRef}
-          className={className}
-          src={googleUrl}
-          alt={alt}
-          loading={loading}
-          onLoad={(e) => handleGoogleBooksResult(e.target as HTMLImageElement, true)}
-          onError={(e) => handleGoogleBooksResult(e.target as HTMLImageElement, false)}
-        />
-        {/* Hidden placeholder ready to replace if Google also fails (handled by state change) */}
-      </>
+      <img
+        ref={imgRef}
+        className={className}
+        src={olCoverIdUrl}
+        alt={alt}
+        loading={loading}
+        onLoad={(e) => handleImageResult(true, e.target as HTMLImageElement, 'google-books')}
+        onError={() => setState('google-books')}
+      />
     )
   }
 
-  // Default: Open Library
+  if (state === 'google-books') {
+    if (!googleUrl) return null
+    return (
+      <img
+        ref={imgRef}
+        className={className}
+        src={googleUrl}
+        alt={alt}
+        loading={loading}
+        onLoad={(e) => handleImageResult(true, e.target as HTMLImageElement, 'placeholder')}
+        onError={() => setState('placeholder')}
+      />
+    )
+  }
+
+  // Default: Open Library by ISBN
   return (
     <img
       ref={imgRef}
@@ -160,8 +195,8 @@ export default function BookCover({
       src={openLibraryUrl}
       alt={alt}
       loading={loading}
-      onLoad={(e) => handleOpenLibraryResult(e.target as HTMLImageElement, true)}
-      onError={(e) => handleOpenLibraryResult(e.target as HTMLImageElement, false)}
+      onLoad={(e) => handleImageResult(true, e.target as HTMLImageElement, 'ol-cover-id')}
+      onError={() => setState('ol-cover-id')}
     />
   )
 }
