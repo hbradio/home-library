@@ -12,6 +12,8 @@ interface Book {
   publisher: string
   dewey_decimal: string
   lc_classification: string
+  dewey_guess: string
+  lc_guess: string
   publish_year: number | null
   loan_status: string
   patron_name?: string
@@ -135,7 +137,9 @@ export default function PublicLibrary() {
     if (groupBy === 'none') return [['', books]]
     const groups: Record<string, Book[]> = {}
     for (const book of books) {
-      const raw = groupBy === 'dewey' ? book.dewey_decimal : book.lc_classification
+      const raw = groupBy === 'dewey'
+        ? (book.dewey_decimal || book.dewey_guess)
+        : (book.lc_classification || book.lc_guess)
       const label = raw
         ? (groupBy === 'dewey' ? getDeweyGroup(raw) : getLCGroup(raw))
         : 'Unclassified'

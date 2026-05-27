@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"encoding/xml"
@@ -23,8 +24,12 @@ type bookRow struct {
 	ISBN             string
 	Title            string
 	Author           string
+	Genre            string
+	Publisher        string
 	DeweyDecimal     string
 	LCClassification string
+	DeweyGuess       string
+	LCGuess          string
 	Email            string
 }
 
@@ -38,6 +43,11 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to connect to database: %v\n", err)
 		os.Exit(1)
+	}
+
+	geminiKey := os.Getenv("GEMINI_API_KEY")
+	if geminiKey == "" {
+		fmt.Println("WARNING: GEMINI_API_KEY not set -- LLM guessing will be skipped.")
 	}
 
 	if *dryRun {
@@ -57,7 +67,7 @@ func main() {
 
 	if len(books) == 0 {
 		fmt.Println("No books with missing classifications found.")
-		printUserStats(database, 0, 0, 0)
+		printUserStats(database, 0, 0, 0, 0, 0)
 		return
 	}
 
@@ -65,6 +75,8 @@ func main() {
 
 	deweyFilled := 0
 	locFilled := 0
+	deweyGuessed := 0
+	locGuessed := 0
 	updated := 0
 
 	for i, book := range books {
@@ -139,7 +151,7 @@ func main() {
 			}
 		}
 
-		// Print results
+		// Print authoritative results
 		if foundDewey != "" {
 			fmt.Printf("     \U0001F4D7 Dewey: %s (from %s)\n", foundDewey, deweySource)
 		} else if book.DeweyDecimal != "" {
@@ -155,20 +167,48 @@ func main() {
 			fmt.Printf("        LoC:   (not found)\n")
 		}
 
+		// API 5: Gemini LLM guess (if still missing AND no existing guess)
+		guessedDewey := ""
+		guessedLoC := ""
+		needDeweyGuess := (book.DeweyDecimal == "" && foundDewey == "" && book.DeweyGuess == "")
+		needLoCGuess := (book.LCClassification == "" && foundLoC == "" && book.LCGuess == "")
+		if (needDeweyGuess || needLoCGuess) && geminiKey != "" {
+			time.Sleep(1 * time.Second)
+			gd, gl := guessWithGemini(geminiKey, book.Title, book.Author, book.Genre, book.Publisher)
+			if needDeweyGuess && gd != "" {
+				guessedDewey = gd
+				fmt.Printf("     \U0001F916 Dewey (guess): %s (from Gemini)\n", guessedDewey)
+			}
+			if needLoCGuess && gl != "" {
+				guessedLoC = gl
+				fmt.Printf("     \U0001F916 LoC (guess):   %s (from Gemini)\n", guessedLoC)
+			}
+		}
+
 		// Update DB
-		if foundDewey != "" || foundLoC != "" {
+		hasAuthUpdate := foundDewey != "" || foundLoC != ""
+		hasGuessUpdate := guessedDewey != "" || guessedLoC != ""
+		if hasAuthUpdate || hasGuessUpdate {
 			if !*dryRun {
-				err := updateBook(database, book, foundDewey, foundLoC)
+				err := updateBook(database, book, foundDewey, foundLoC, guessedDewey, guessedLoC)
 				if err != nil {
 					fmt.Printf("        ERROR updating: %v\n", err)
 				}
 			}
-			updated++
+			if hasAuthUpdate {
+				updated++
+			}
 			if foundDewey != "" {
 				deweyFilled++
 			}
 			if foundLoC != "" {
 				locFilled++
+			}
+			if guessedDewey != "" {
+				deweyGuessed++
+			}
+			if guessedLoC != "" {
+				locGuessed++
 			}
 		}
 
@@ -182,24 +222,32 @@ func main() {
 
 	// Global summary
 	fmt.Println(strings.Repeat("-", 50))
-	fmt.Printf("Done. Updated %d of %d books.\n", updated, len(books))
+	fmt.Printf("Done. Updated %d of %d books (authoritative).\n", updated, len(books))
 	fmt.Printf("  Dewey filled: %d\n", deweyFilled)
 	fmt.Printf("  LoC filled:   %d\n", locFilled)
+	if geminiKey != "" {
+		fmt.Printf("  Dewey guessed: %d\n", deweyGuessed)
+		fmt.Printf("  LoC guessed:   %d\n", locGuessed)
+	}
 	fmt.Printf("  Still missing: %d\n", len(books)-updated)
 	fmt.Println()
 
-	printUserStats(database, len(books), deweyFilled, locFilled)
+	printUserStats(database, len(books), deweyFilled, locFilled, deweyGuessed, locGuessed)
 }
 
 func queryMissingBooks(database *sql.DB) ([]bookRow, error) {
 	rows, err := database.Query(`
 		SELECT b.id, b.isbn, b.title, COALESCE(b.author, ''),
+			   COALESCE(b.genre, ''), COALESCE(b.publisher, ''),
 			   COALESCE(b.dewey_decimal, ''), COALESCE(b.lc_classification, ''),
+			   COALESCE(b.dewey_guess, ''), COALESCE(b.lc_guess, ''),
 			   COALESCE(u.email, '')
 		FROM books b
 		JOIN users u ON u.id = b.user_id
 		WHERE (b.dewey_decimal IS NULL OR b.dewey_decimal = ''
-			OR b.lc_classification IS NULL OR b.lc_classification = '')
+			OR b.lc_classification IS NULL OR b.lc_classification = ''
+			OR b.dewey_guess IS NULL OR b.dewey_guess = ''
+			OR b.lc_guess IS NULL OR b.lc_guess = '')
 		  AND b.isbn NOT LIKE 'MANUAL-%'
 		ORDER BY u.email, b.title
 	`)
@@ -211,7 +259,7 @@ func queryMissingBooks(database *sql.DB) ([]bookRow, error) {
 	var books []bookRow
 	for rows.Next() {
 		var b bookRow
-		if err := rows.Scan(&b.ID, &b.ISBN, &b.Title, &b.Author, &b.DeweyDecimal, &b.LCClassification, &b.Email); err != nil {
+		if err := rows.Scan(&b.ID, &b.ISBN, &b.Title, &b.Author, &b.Genre, &b.Publisher, &b.DeweyDecimal, &b.LCClassification, &b.DeweyGuess, &b.LCGuess, &b.Email); err != nil {
 			return nil, err
 		}
 		books = append(books, b)
@@ -219,7 +267,7 @@ func queryMissingBooks(database *sql.DB) ([]bookRow, error) {
 	return books, rows.Err()
 }
 
-func updateBook(database *sql.DB, book bookRow, dewey, loc string) error {
+func updateBook(database *sql.DB, book bookRow, dewey, loc, deweyGuess, locGuess string) error {
 	newDewey := book.DeweyDecimal
 	if dewey != "" {
 		newDewey = dewey
@@ -228,9 +276,17 @@ func updateBook(database *sql.DB, book bookRow, dewey, loc string) error {
 	if loc != "" {
 		newLoC = loc
 	}
+	newDeweyGuess := book.DeweyGuess
+	if deweyGuess != "" {
+		newDeweyGuess = deweyGuess
+	}
+	newLCGuess := book.LCGuess
+	if locGuess != "" {
+		newLCGuess = locGuess
+	}
 	_, err := database.Exec(
-		`UPDATE books SET dewey_decimal = $1, lc_classification = $2 WHERE id = $3`,
-		newDewey, newLoC, book.ID,
+		`UPDATE books SET dewey_decimal = $1, lc_classification = $2, dewey_guess = $3, lc_guess = $4 WHERE id = $5`,
+		newDewey, newLoC, newDeweyGuess, newLCGuess, book.ID,
 	)
 	return err
 }
@@ -326,11 +382,8 @@ func lookupOLSearch(searchURL string) (dewey, loc string) {
 // cleanSearchClassification converts the padded format from the Search API
 // (e.g. "PG-3326.00000000.P7 2003") back to a standard form (e.g. "PG3326.P7 2003").
 func cleanSearchClassification(raw string) string {
-	// Remove ".00000000" padding
 	cleaned := strings.ReplaceAll(raw, ".00000000", "")
-	// Remove dashes (e.g. "PG-3326" -> "PG3326")
 	cleaned = strings.ReplaceAll(cleaned, "-", "")
-	// Clean up any double spaces
 	for strings.Contains(cleaned, "  ") {
 		cleaned = strings.ReplaceAll(cleaned, "  ", " ")
 	}
@@ -339,9 +392,8 @@ func cleanSearchClassification(raw string) string {
 
 // --- DNB (German National Library) SRU API ---
 
-// MARC21 XML structures for parsing DNB responses
 type sruResponse struct {
-	XMLName xml.Name  `xml:"searchRetrieveResponse"`
+	XMLName xml.Name    `xml:"searchRetrieveResponse"`
 	Records []sruRecord `xml:"records>record"`
 }
 
@@ -358,8 +410,8 @@ type marcRecord struct {
 }
 
 type marcDataField struct {
-	Tag       string          `xml:"tag,attr"`
-	SubFields []marcSubField  `xml:"subfield"`
+	Tag       string         `xml:"tag,attr"`
+	SubFields []marcSubField `xml:"subfield"`
 }
 
 type marcSubField struct {
@@ -367,10 +419,6 @@ type marcSubField struct {
 	Value string `xml:",chardata"`
 }
 
-// lookupDNB fetches classification data from the German National Library's SRU API.
-// It checks MARC tag 082 for Dewey and tag 050 for LoC classification.
-// If those are missing, it falls back to tag 084 with indicator "sdnb"
-// (Sachgruppen der DNB), which maps to broad Dewey classes.
 func lookupDNB(isbn string) (dewey, loc string) {
 	dnbURL := fmt.Sprintf(
 		"https://services.dnb.de/sru/dnb?version=1.1&operation=searchRetrieve&query=isbn%%3D%s&maximumRecords=1&recordSchema=MARC21-xml",
@@ -404,7 +452,7 @@ func lookupDNB(isbn string) (dewey, loc string) {
 
 	for _, df := range record.DataFields {
 		switch df.Tag {
-		case "082": // Standard Dewey Decimal
+		case "082":
 			if dewey == "" {
 				for _, sf := range df.SubFields {
 					if sf.Code == "a" && sf.Value != "" {
@@ -413,7 +461,7 @@ func lookupDNB(isbn string) (dewey, loc string) {
 					}
 				}
 			}
-		case "050": // Library of Congress Classification
+		case "050":
 			if loc == "" {
 				for _, sf := range df.SubFields {
 					if sf.Code == "a" && sf.Value != "" {
@@ -422,7 +470,7 @@ func lookupDNB(isbn string) (dewey, loc string) {
 					}
 				}
 			}
-		case "084": // Other classification (check for sdnb)
+		case "084":
 			if sdnbDewey == "" {
 				isSdnb := false
 				firstValue := ""
@@ -441,7 +489,6 @@ func lookupDNB(isbn string) (dewey, loc string) {
 		}
 	}
 
-	// Fall back to sdnb code if no standard Dewey was found
 	if dewey == "" && sdnbDewey != "" {
 		dewey = sdnbDewey
 	}
@@ -449,18 +496,98 @@ func lookupDNB(isbn string) (dewey, loc string) {
 	return dewey, loc
 }
 
-func printUserStats(database *sql.DB, processed, newDewey, newLoC int) {
-	// Print new-fills summary if we processed anything
+// --- Gemini LLM API ---
+
+func guessWithGemini(apiKey, title, author, genre, publisher string) (dewey, loc string) {
+	prompt := fmt.Sprintf(`You are a librarian. Given this book's metadata, suggest the most likely Dewey Decimal Classification number and Library of Congress Classification.
+Return ONLY valid JSON with no markdown formatting: {"dewey": "...", "loc": "..."}
+For dewey, provide a specific number like "823.914" not just a broad class.
+For loc, provide a specific classification like "PR6068.O93" not just a letter.
+If you cannot determine a value, use an empty string.
+
+Title: %s
+Author: %s
+Genre: %s
+Publisher: %s`, title, author, genre, publisher)
+
+	reqBody := map[string]interface{}{
+		"contents": []map[string]interface{}{
+			{
+				"parts": []map[string]string{
+					{"text": prompt},
+				},
+			},
+		},
+		"generationConfig": map[string]interface{}{
+			"temperature":     0.1,
+			"maxOutputTokens": 100,
+		},
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", ""
+	}
+
+	geminiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=%s", apiKey)
+	resp, err := http.Post(geminiURL, "application/json", bytes.NewReader(jsonBody))
+	if err != nil {
+		return "", ""
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return "", ""
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", ""
+	}
+
+	// Parse Gemini response structure
+	var geminiResp struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text string `json:"text"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+	}
+	if err := json.Unmarshal(body, &geminiResp); err != nil {
+		return "", ""
+	}
+
+	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
+		return "", ""
+	}
+
+	text := strings.TrimSpace(geminiResp.Candidates[0].Content.Parts[0].Text)
+	// Strip markdown code fences if present
+	text = strings.TrimPrefix(text, "```json")
+	text = strings.TrimPrefix(text, "```")
+	text = strings.TrimSuffix(text, "```")
+	text = strings.TrimSpace(text)
+
+	var result struct {
+		Dewey string `json:"dewey"`
+		Loc   string `json:"loc"`
+	}
+	if err := json.Unmarshal([]byte(text), &result); err != nil {
+		return "", ""
+	}
+
+	return result.Dewey, result.Loc
+}
+
+func printUserStats(database *sql.DB, processed, newDewey, newLoC, newDeweyGuess, newLoCGuess int) {
 	if processed > 0 {
 		fmt.Println("New values added this run:")
-		deweyPct := 0
-		locPct := 0
-		if processed > 0 {
-			deweyPct = newDewey * 100 / processed
-			locPct = newLoC * 100 / processed
-		}
-		fmt.Printf("  Dewey: %d/%d processed (%d%%)\n", newDewey, processed, deweyPct)
-		fmt.Printf("  LoC:   %d/%d processed (%d%%)\n", newLoC, processed, locPct)
+		fmt.Printf("  Dewey (authoritative): %d/%d (%d%%)\n", newDewey, processed, pct(newDewey, processed))
+		fmt.Printf("  Dewey (guessed):       %d/%d (%d%%)\n", newDeweyGuess, processed, pct(newDeweyGuess, processed))
+		fmt.Printf("  LoC (authoritative):   %d/%d (%d%%)\n", newLoC, processed, pct(newLoC, processed))
+		fmt.Printf("  LoC (guessed):         %d/%d (%d%%)\n", newLoCGuess, processed, pct(newLoCGuess, processed))
 		fmt.Println()
 	}
 
@@ -468,7 +595,9 @@ func printUserStats(database *sql.DB, processed, newDewey, newLoC int) {
 		SELECT COALESCE(u.email, '(no email)'),
 			   COUNT(*) AS total,
 			   COUNT(NULLIF(b.dewey_decimal, '')) AS has_dewey,
-			   COUNT(NULLIF(b.lc_classification, '')) AS has_loc
+			   COUNT(NULLIF(b.lc_classification, '')) AS has_loc,
+			   COUNT(NULLIF(b.dewey_guess, '')) AS has_dewey_guess,
+			   COUNT(NULLIF(b.lc_guess, '')) AS has_lc_guess
 		FROM books b
 		JOIN users u ON u.id = b.user_id
 		WHERE b.isbn NOT LIKE 'MANUAL-%'
@@ -485,20 +614,31 @@ func printUserStats(database *sql.DB, processed, newDewey, newLoC int) {
 	fmt.Println()
 	for rows.Next() {
 		var email string
-		var total, hasDewey, hasLoC int
-		if err := rows.Scan(&email, &total, &hasDewey, &hasLoC); err != nil {
+		var total, hasDewey, hasLoC, hasDeweyGuess, hasLCGuess int
+		if err := rows.Scan(&email, &total, &hasDewey, &hasLoC, &hasDeweyGuess, &hasLCGuess); err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to scan stats row: %v\n", err)
 			continue
 		}
-		deweyPct := 0
-		locPct := 0
-		if total > 0 {
-			deweyPct = hasDewey * 100 / total
-			locPct = hasLoC * 100 / total
+		deweyTotal := hasDewey + hasDeweyGuess
+		if deweyTotal > total {
+			deweyTotal = total
+		}
+		locTotal := hasLoC + hasLCGuess
+		if locTotal > total {
+			locTotal = total
 		}
 		fmt.Printf("  %s (%d books total)\n", email, total)
-		fmt.Printf("    Dewey Decimal:  %d/%d (%d%%)\n", hasDewey, total, deweyPct)
-		fmt.Printf("    LoC:            %d/%d (%d%%)\n", hasLoC, total, locPct)
+		fmt.Printf("    Dewey:  %d/%d (%d%%) authoritative, %d/%d (%d%%) with guesses\n",
+			hasDewey, total, pct(hasDewey, total), deweyTotal, total, pct(deweyTotal, total))
+		fmt.Printf("    LoC:    %d/%d (%d%%) authoritative, %d/%d (%d%%) with guesses\n",
+			hasLoC, total, pct(hasLoC, total), locTotal, total, pct(locTotal, total))
 		fmt.Println()
 	}
+}
+
+func pct(n, total int) int {
+	if total == 0 {
+		return 0
+	}
+	return n * 100 / total
 }

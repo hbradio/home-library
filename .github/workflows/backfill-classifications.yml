@@ -19,4 +19,5 @@ jobs:
       - name: Run backfill
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: ./backfill

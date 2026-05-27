@@ -13,6 +13,8 @@ interface Book {
   publisher: string
   dewey_decimal: string
   lc_classification: string
+  dewey_guess: string
+  lc_guess: string
   publish_year: number | null
   loan_status: string
   patron_name?: string
@@ -130,10 +132,10 @@ export default function Browse() {
     const resp = await fetchWithAuth('/api/books')
     if (!resp.ok) return
     const allBooks: Book[] = await resp.json()
-    const header = 'ISBN,Title,Author,Genre,Publisher,Dewey Decimal,LoC,Year,Status'
+    const header = 'ISBN,Title,Author,Genre,Publisher,Dewey Decimal,LoC,Dewey (Est.),LoC (Est.),Year,Status'
     const escape = (s: string) => `"${(s || '').replace(/"/g, '""')}"`
     const rows = allBooks.map(b =>
-      [escape(b.isbn), escape(b.title), escape(b.author), escape(b.genre), escape(b.publisher), escape(b.dewey_decimal), escape(b.lc_classification), b.publish_year ?? '', b.loan_status].join(',')
+      [escape(b.isbn), escape(b.title), escape(b.author), escape(b.genre), escape(b.publisher), escape(b.dewey_decimal), escape(b.lc_classification), escape(b.dewey_guess), escape(b.lc_guess), b.publish_year ?? '', b.loan_status].join(',')
     )
     const csv = [header, ...rows].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
@@ -149,7 +151,9 @@ export default function Browse() {
     if (groupBy === 'none') return [['', books]]
     const groups: Record<string, Book[]> = {}
     for (const book of books) {
-      const raw = groupBy === 'dewey' ? book.dewey_decimal : book.lc_classification
+      const raw = groupBy === 'dewey'
+        ? (book.dewey_decimal || book.dewey_guess)
+        : (book.lc_classification || book.lc_guess)
       const label = raw
         ? (groupBy === 'dewey' ? getDeweyGroup(raw) : getLCGroup(raw))
         : 'Unclassified'

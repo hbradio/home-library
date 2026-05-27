@@ -103,6 +103,8 @@ func Books(w http.ResponseWriter, r *http.Request) {
 			Publisher        string `json:"publisher"`
 			DeweyDecimal     string `json:"dewey_decimal"`
 			LCClassification string `json:"lc_classification"`
+			DeweyGuess       string `json:"dewey_guess"`
+			LCGuess          string `json:"lc_guess"`
 			PublishYear      *int   `json:"publish_year"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -113,7 +115,7 @@ func Books(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, `{"error":"title is required"}`, http.StatusBadRequest)
 			return
 		}
-		book, err := models.UpdateBook(pool, bookID, user.ID, body.Title, body.Author, body.Genre, body.Publisher, body.DeweyDecimal, body.LCClassification, body.PublishYear)
+		book, err := models.UpdateBook(pool, bookID, user.ID, body.Title, body.Author, body.Genre, body.Publisher, body.DeweyDecimal, body.LCClassification, body.DeweyGuess, body.LCGuess, body.PublishYear)
 		if err != nil {
 			http.Error(w, `{"error":"failed to update book"}`, http.StatusInternalServerError)
 			return

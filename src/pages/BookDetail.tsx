@@ -12,6 +12,8 @@ interface Book {
   publisher: string
   dewey_decimal: string
   lc_classification: string
+  dewey_guess: string
+  lc_guess: string
   publish_year: number | null
   loan_status: string
   patron_name?: string
@@ -31,6 +33,8 @@ interface EditFields {
   publisher: string
   dewey_decimal: string
   lc_classification: string
+  dewey_guess: string
+  lc_guess: string
   publish_year: string
 }
 
@@ -42,7 +46,7 @@ export default function BookDetail() {
   const [history, setHistory] = useState<LoanEvent[]>([])
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [edit, setEdit] = useState<EditFields>({ title: '', author: '', genre: '', publisher: '', dewey_decimal: '', lc_classification: '', publish_year: '' })
+  const [edit, setEdit] = useState<EditFields>({ title: '', author: '', genre: '', publisher: '', dewey_decimal: '', lc_classification: '', dewey_guess: '', lc_guess: '', publish_year: '' })
 
   const startEdit = () => {
     if (!book) return
@@ -53,6 +57,8 @@ export default function BookDetail() {
       publisher: book.publisher,
       dewey_decimal: book.dewey_decimal,
       lc_classification: book.lc_classification,
+      dewey_guess: book.dewey_guess,
+      lc_guess: book.lc_guess,
       publish_year: book.publish_year?.toString() || '',
     })
     setEditing(true)
@@ -69,6 +75,8 @@ export default function BookDetail() {
         publisher: edit.publisher,
         dewey_decimal: edit.dewey_decimal,
         lc_classification: edit.lc_classification,
+        dewey_guess: edit.dewey_guess,
+        lc_guess: edit.lc_guess,
         publish_year: isNaN(year as number) ? null : year,
       }),
     })
@@ -146,6 +154,10 @@ export default function BookDetail() {
               <input value={edit.dewey_decimal} onChange={(e) => setEdit({ ...edit, dewey_decimal: e.target.value })} />
               <label>LoC:</label>
               <input value={edit.lc_classification} onChange={(e) => setEdit({ ...edit, lc_classification: e.target.value })} />
+              <label>Dewey (Est.):</label>
+              <input value={edit.dewey_guess} onChange={(e) => setEdit({ ...edit, dewey_guess: e.target.value })} />
+              <label>LoC (Est.):</label>
+              <input value={edit.lc_guess} onChange={(e) => setEdit({ ...edit, lc_guess: e.target.value })} />
               <div style={{ gridColumn: '1 / -1', marginTop: '0.5em', display: 'flex', gap: '0.5em' }}>
                 <button onClick={saveEdit}>Save</button>
                 <button onClick={() => setEditing(false)}>Cancel</button>
@@ -158,8 +170,8 @@ export default function BookDetail() {
                 {book.genre && <><dt>Genre:</dt><dd>{book.genre}</dd><br /></>}
                 {book.publisher && <><dt>Publisher:</dt><dd>{book.publisher}</dd><br /></>}
                 {book.publish_year && <><dt>Year:</dt><dd>{book.publish_year}</dd><br /></>}
-                {book.dewey_decimal && <><dt>Dewey Decimal:</dt><dd>{book.dewey_decimal}</dd><br /></>}
-                {book.lc_classification && <><dt>LoC:</dt><dd>{book.lc_classification}</dd><br /></>}
+                {(book.dewey_decimal || book.dewey_guess) && <><dt>Dewey Decimal:</dt><dd>{book.dewey_decimal || <span style={{ fontStyle: 'italic', color: '#8b7355' }}>{book.dewey_guess} (estimated)</span>}</dd><br /></>}
+                {(book.lc_classification || book.lc_guess) && <><dt>LoC:</dt><dd>{book.lc_classification || <span style={{ fontStyle: 'italic', color: '#8b7355' }}>{book.lc_guess} (estimated)</span>}</dd><br /></>}
                 <dt>ISBN:</dt><dd>{isManual ? <span style={{ color: '#8b7355', fontStyle: 'italic' }}>Manual entry</span> : book.isbn}</dd><br />
                 <dt>Status:</dt>
                 <dd>
