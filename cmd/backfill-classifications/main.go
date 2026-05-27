@@ -176,13 +176,21 @@ func main() {
 			fmt.Printf("        Asking Gemini to guess...\n")
 			time.Sleep(1 * time.Second)
 			gd, gl := guessWithGemini(geminiKey, book.Title, book.Author, book.Genre, book.Publisher)
-			if needDeweyGuess && gd != "" {
-				guessedDewey = gd
-				fmt.Printf("     \U0001F916 Dewey (guess): %s (from Gemini)\n", guessedDewey)
+			if needDeweyGuess {
+				if gd != "" {
+					guessedDewey = gd
+					fmt.Printf("     \U0001F916 Dewey (guess): %s (from Gemini)\n", guessedDewey)
+				} else {
+					fmt.Printf("        Dewey (guess): Gemini returned no result\n")
+				}
 			}
-			if needLoCGuess && gl != "" {
-				guessedLoC = gl
-				fmt.Printf("     \U0001F916 LoC (guess):   %s (from Gemini)\n", guessedLoC)
+			if needLoCGuess {
+				if gl != "" {
+					guessedLoC = gl
+					fmt.Printf("     \U0001F916 LoC (guess):   %s (from Gemini)\n", guessedLoC)
+				} else {
+					fmt.Printf("        LoC (guess):   Gemini returned no result\n")
+				}
 			}
 		}
 
