@@ -174,7 +174,7 @@ func main() {
 		needLoCGuess := (book.LCClassification == "" && foundLoC == "" && book.LCGuess == "")
 		if (needDeweyGuess || needLoCGuess) && geminiKey != "" {
 			fmt.Printf("        Asking Gemini to guess...\n")
-			time.Sleep(1 * time.Second)
+			time.Sleep(4 * time.Second) // Gemini free tier: 15 RPM
 			gd, gl := guessWithGemini(geminiKey, book.Title, book.Author, book.Genre, book.Publisher)
 			if needDeweyGuess {
 				if gd != "" {
@@ -539,18 +539,32 @@ Publisher: %s`, title, author, genre, publisher)
 	}
 
 	geminiURL := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=%s", apiKey)
-	resp, err := http.Post(geminiURL, "application/json", bytes.NewReader(jsonBody))
-	if err != nil {
+
+	var body []byte
+	for attempt := 0; attempt < 3; attempt++ {
+		resp, err := http.Post(geminiURL, "application/json", bytes.NewReader(jsonBody))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "        Gemini request error: %v\n", err)
+			return "", ""
+		}
+
+		body, err = io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		if resp.StatusCode == 200 {
+			break
+		}
+		if resp.StatusCode == 429 {
+			wait := 5 * (attempt + 1)
+			fmt.Printf("        Gemini rate limited, waiting %ds...\n", wait)
+			time.Sleep(time.Duration(wait) * time.Second)
+			continue
+		}
+		fmt.Fprintf(os.Stderr, "        Gemini error (HTTP %d): %s\n", resp.StatusCode, string(body))
 		return "", ""
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
-		return "", ""
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
+	if body == nil {
 		return "", ""
 	}
 
