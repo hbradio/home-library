@@ -1,0 +1,31 @@
+name: Create Public Sharing Link
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: 'Email address of the user'
+        required: true
+        type: string
+      slug:
+        description: 'Custom slug for the link (e.g. "my-library" → /lib/my-library)'
+        required: true
+        type: string
+
+jobs:
+  create-link:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build tool
+        run: go build -o create-public-link ./cmd/create-public-link
+
+      - name: Create public link
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: ./create-public-link --email "${{ github.event.inputs.email }}" --slug "${{ github.event.inputs.slug }}"
