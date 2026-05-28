@@ -1,0 +1,27 @@
+name: Count Books
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: 'Email address of the user'
+        required: true
+        type: string
+
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build tool
+        run: go build -o count-books ./cmd/count-books
+
+      - name: Count books
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: ./count-books --email "${{ github.event.inputs.email }}"
