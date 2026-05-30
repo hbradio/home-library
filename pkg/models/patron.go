@@ -96,6 +96,19 @@ func GetPatronByID(db *sql.DB, patronID, userID string) (*PatronDetail, error) {
 	return &p, nil
 }
 
+func UpdatePatron(db *sql.DB, patronID, userID, firstName, lastName string) (*Patron, error) {
+	var p Patron
+	err := db.QueryRow(
+		`UPDATE patrons SET first_name = $3, last_name = $4 WHERE id = $1 AND user_id = $2
+		 RETURNING id, user_id, first_name, last_name, created_at`,
+		patronID, userID, firstName, lastName,
+	).Scan(&p.ID, &p.UserID, &p.FirstName, &p.LastName, &p.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
 func DeletePatron(db *sql.DB, patronID, userID string) error {
 	_, err := db.Exec(`DELETE FROM patrons WHERE id = $1 AND user_id = $2`, patronID, userID)
 	return err

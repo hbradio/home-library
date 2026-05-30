@@ -17,6 +17,11 @@ interface PatronData {
   }>
 }
 
+interface EditFields {
+  first_name: string
+  last_name: string
+}
+
 interface LoanEvent {
   id: string
   event_type: string
@@ -29,6 +34,36 @@ export default function PatronDetail() {
   const { fetchWithAuth } = useApi()
   const [patron, setPatron] = useState<PatronData | null>(null)
   const [history, setHistory] = useState<LoanEvent[]>([])
+  const [editing, setEditing] = useState(false)
+  const [edit, setEdit] = useState<EditFields>({ first_name: '', last_name: '' })
+
+  const startEdit = () => {
+    if (!patron) return
+    setEdit({
+      first_name: patron.first_name,
+      last_name: patron.last_name,
+    })
+    setEditing(true)
+  }
+
+  const saveEdit = async () => {
+    const resp = await fetchWithAuth(`/api/patrons?id=${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        first_name: edit.first_name,
+        last_name: edit.last_name,
+      }),
+    })
+    if (resp.ok) {
+      const updated = await resp.json()
+      setPatron(updated)
+      setEditing(false)
+    }
+  }
+
+  const cancelEdit = () => {
+    setEditing(false)
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -46,8 +81,36 @@ export default function PatronDetail() {
 
   return (
     <div className="detail-page">
-      <h2>{patron.first_name} {patron.last_name} <span style={{ fontSize: '0.5em', fontWeight: 'normal', color: '#8b7355' }}>(Esc to go back)</span></h2>
+      <h2>
+        {editing ? (
+          <>
+            <input 
+              value={edit.first_name} 
+              onChange={(e) => setEdit({ ...edit, first_name: e.target.value })} 
+              style={{ font: 'inherit', width: 'auto', marginRight: '0.5em' }} 
+            />
+            <input 
+              value={edit.last_name} 
+              onChange={(e) => setEdit({ ...edit, last_name: e.target.value })} 
+              style={{ font: 'inherit', width: 'auto' }} 
+            />
+          </>
+        ) : (
+          <>
+            {patron.first_name} {patron.last_name} <span style={{ fontSize: '0.5em', fontWeight: 'normal', color: '#8b7355' }}>(Esc to go back)</span>
+          </>
+        )}
+      </h2>
       <p style={{ color: '#8b7355' }}>Patron since {new Date(patron.created_at).toLocaleDateString()}</p>
+
+      {editing ? (
+        <div style={{ marginBottom: '1em' }}>
+          <button onClick={saveEdit} style={{ marginRight: '0.5em' }}>Save</button>
+          <button onClick={cancelEdit}>Cancel</button>
+        </div>
+      ) : (
+        <button onClick={startEdit} style={{ marginBottom: '1em' }}>Edit</button>
+      )}
 
       <h3>Currently Checked Out</h3>
       {(!patron.checked_out_books || patron.checked_out_books.length === 0) ? (

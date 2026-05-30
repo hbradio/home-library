@@ -78,6 +78,31 @@ func Patrons(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(patron)
 
+	case http.MethodPut:
+		id := r.URL.Query().Get("id")
+		if id == "" {
+			http.Error(w, `{"error":"id parameter required"}`, http.StatusBadRequest)
+			return
+		}
+		var body struct {
+			FirstName string `json:"first_name"`
+			LastName  string `json:"last_name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid request body"}`, http.StatusBadRequest)
+			return
+		}
+		if body.FirstName == "" || body.LastName == "" {
+			http.Error(w, `{"error":"first_name and last_name are required"}`, http.StatusBadRequest)
+			return
+		}
+		patron, err := models.UpdatePatron(pool, id, user.ID, body.FirstName, body.LastName)
+		if err != nil {
+			http.Error(w, `{"error":"failed to update patron"}`, http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(patron)
+
 	case http.MethodDelete:
 		id := r.URL.Query().Get("id")
 		if id == "" {
